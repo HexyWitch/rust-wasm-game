@@ -1,0 +1,16 @@
+[package]
+name = "rust-websock"
+version = "0.1.0"
+authors = ["William Lundstedt <bananavice@gmail.com>"]
+
+[workspace]
+members = [
+    "./server/"
+]
+
+[lib]
+name = "client"
+path = "src/client.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
