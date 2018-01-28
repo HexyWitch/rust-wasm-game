@@ -84,6 +84,7 @@
         function websocket_close(socket_id, code, reason_ptr) {
             var socket = sockets[socket_id];
             var reason = copyCStr(Module, reason_ptr);
+            sockets[socket_id] = null;
             socket.close(code, reason);
         }
 

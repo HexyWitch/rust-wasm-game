@@ -28,7 +28,9 @@ pub fn console_log(s: &str) {
     }
 }
 
-pub fn set_main_loop_callback<T>(callback: T)
+// Will exit the application and pass callback into javascript, where it will be called on a timer
+// Should only be called once
+pub unsafe fn set_main_loop_callback<T>(callback: T)
 where
     T: FnMut(),
 {
@@ -45,9 +47,7 @@ where
         })
     }
 
-    unsafe {
-        js_set_main_loop(wrapper::<T>);
-    }
+    js_set_main_loop(wrapper::<T>);
 }
 
 pub type SocketId = u32;

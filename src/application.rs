@@ -26,9 +26,9 @@ pub fn init() -> Box<FnMut()> {
                 while let Some(msg) = socket.next() {
                     println!("Pong: {}", msg);
                     ping = true;
-                }
-                if x > 10 {
-                    clear = true;
+                    if x > 10 {
+                        clear = true;
+                    }
                 }
             }
         }

@@ -24,7 +24,9 @@ fn main() {
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
     let mut update = application::init();
-    platform_js::js::set_main_loop_callback(|| update());
+    unsafe {
+        platform_js::js::set_main_loop_callback(|| update());
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
