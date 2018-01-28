@@ -3,22 +3,33 @@ use platform::websocket::WebSocket;
 pub fn init() -> Box<FnMut()> {
     println!("Start the application!");
 
-    let mut socket = WebSocket::connect("ws://localhost:3012").unwrap();
+    let mut sockets = Vec::new();
+    sockets.push(WebSocket::connect("ws://localhost:3012").unwrap());
     let mut ping = true;
     let mut x = 1;
+    let mut clear = false;
     Box::new(move || {
-        if socket.open() {
-            if ping {
-                let msg = format!("{}", x);
-                println!("Ping: {}", x);
-                socket.send(&msg).unwrap();
-                ping = false;
-                x += 1;
-            }
+        if clear {
+            sockets.clear();
+        }
 
-            while let Some(msg) = socket.next() {
-                println!("Pong: {}", msg);
-                ping = true;
+        for socket in sockets.iter_mut() {
+            if socket.open() {
+                if ping {
+                    let msg = format!("{}", x);
+                    println!("Ping: {}", x);
+                    socket.send(&msg).unwrap();
+                    ping = false;
+                    x += 1;
+                }
+
+                while let Some(msg) = socket.next() {
+                    println!("Pong: {}", msg);
+                    ping = true;
+                }
+                if x > 10 {
+                    clear = true;
+                }
             }
         }
     })
