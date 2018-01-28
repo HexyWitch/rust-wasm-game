@@ -106,16 +106,16 @@
                     HEAPF32 = new Float32Array(buffer);
                     HEAPF64 = new Float64Array(buffer);
                 },
-                write: function (ptr) {
+                js_console_log: function (ptr) {
                     let str = copyCStr(Module, ptr);
                     console.log(str);
                 },
-                websocket_create: websocket_create,
-                websocket_send: websocket_send,
-                websocket_onmessage: websocket_onmessage,
-                websocket_onopen: websocket_onopen,
+                js_websocket_create: websocket_create,
+                js_websocket_send: websocket_send,
+                js_websocket_onmessage: websocket_onmessage,
+                js_websocket_onopen: websocket_onopen,
 
-                set_main_loop: function (fn_ptr) {
+                js_set_main_loop: function (fn_ptr) {
                     var f = Module.instance.exports.__web_table.get(fn_ptr);
                     function runner() {
                         f();
@@ -135,12 +135,11 @@
                     Module.alloc = mod.exports.alloc;
                     Module.dealloc = mod.exports.dealloc;
                     Module.dealloc_str = mod.exports.dealloc_str;
-                    Module.run = mod.exports.run;
                     Module.memory = imports.env.memory;
                     Module.instance = mod;
 
                     try {
-                        mod.exports.run()
+                        mod.exports.__web_main()
                     } catch (e) {
                         if (e == "SimulateInfiniteLoop") {
                             return
