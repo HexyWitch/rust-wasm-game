@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Test</title>
+</head>
+
+<body class="container">
+    <script>
+        const Module = {};
+
+        let HEAP8 = null;
+        let HEAP16 = null;
+        let HEAP32 = null;
+        let HEAPU8 = null;
+        let HEAPU16 = null;
+        let HEAPU32 = null;
+        let HEAPF32 = null;
+        let HEAPF64 = null;
+
+        function fetchAndInstantiate(url, importObject) {
+            return fetch(url).then(response =>
+                response.arrayBuffer()
+            ).then(bytes =>
+                WebAssembly.instantiate(bytes, importObject)
+                ).then(results =>
+                    results.instance
+                );
+        }
+
+        function copyCStr(module, ptr) {
+            let orig_ptr = ptr;
+            const collectCString = function* () {
+                while (HEAPU8[ptr] !== 0) {
+                    if (HEAPU8[ptr] === undefined) { throw new Error("Tried to read undef mem") }
+                    yield HEAPU8[ptr]
+                    ptr += 1
+                }
+            }
+
+            const buffer_as_u8 = new Uint8Array(collectCString())
+            const utf8Decoder = new TextDecoder("UTF-8");
+            const buffer_as_utf8 = utf8Decoder.decode(buffer_as_u8);
+            return buffer_as_utf8
+        }
+
+        function newString(module, str) {
+            const utf8Encoder = new TextEncoder("UTF-8");
+            let string_buffer = utf8Encoder.encode(str)
+            let len = string_buffer.length
+            let ptr = module.alloc(len + 1)
+
+            for (i = 0; i < len; i++) {
+                HEAPU8[ptr + i] = string_buffer[i]
+            }
+            HEAPU8[ptr + len] = 0;
+
+            return ptr;
+        }
+
+        var sockets = [];
+
+        function websocket_create(url_ptr) {
+            let url_str = copyCStr(Module, url_ptr);
+            var sock = new WebSocket(url_str);
+            var len = sockets.push(sock);
+            return len - 1;
+        }
+
+        function websocket_send(socket_id, data_ptr) {
+            let data_str = copyCStr(Module, data_ptr);
+            let sock = sockets[socket_id];
+            sock.send(data_str);
+        }
+
+        function websocket_onopen(socket_id, fn_ptr, arg) {
+            var socket = sockets[socket_id];
+            var f = Module.instance.exports.__web_table.get(fn_ptr)
+            socket.onopen = function () {
+                f(arg);
+            }
+        }
+
+        function websocket_onmessage(socket_id, fn_ptr, arg) {
+            var socket = sockets[socket_id];
+            var f = Module.instance.exports.__web_table.get(fn_ptr)
+            socket.onmessage = function (message) {
+                var message_ptr = newString(Module, message.data);
+                f(message_ptr, arg);
+            }
+        }
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        const imports = {
+            env: {
+                "__web_on_grow": function () {
+                    const buffer = Module.instance.exports.memory.buffer;
+                    HEAP8 = new Int8Array(buffer);
+                    HEAP16 = new Int16Array(buffer);
+                    HEAP32 = new Int32Array(buffer);
+                    HEAPU8 = new Uint8Array(buffer);
+                    HEAPU16 = new Uint16Array(buffer);
+                    HEAPU32 = new Uint32Array(buffer);
+                    HEAPF32 = new Float32Array(buffer);
+                    HEAPF64 = new Float64Array(buffer);
+                },
+                write: function (ptr) {
+                    let str = copyCStr(Module, ptr);
+                    console.log(str);
+                },
+                websocket_create: websocket_create,
+                websocket_send: websocket_send,
+                websocket_onmessage: websocket_onmessage,
+                websocket_onopen: websocket_onopen,
+
+                set_main_loop: function (fn_ptr) {
+                    var f = Module.instance.exports.__web_table.get(fn_ptr);
+                    function runner() {
+                        f();
+                        setTimeout(runner, 500)
+                    }
+                    runner()
+
+                    throw "SimulateInfiniteLoop"
+                }
+            }
+        };
+
+        window.addEventListener("load", function (event) {
+            fetchAndInstantiate("rust-websock.wasm", imports)
+                .then(mod => {
+                    console.log("Fetched " + mod);
+                    Module.alloc = mod.exports.alloc;
+                    Module.dealloc = mod.exports.dealloc;
+                    Module.dealloc_str = mod.exports.dealloc_str;
+                    Module.run = mod.exports.run;
+                    Module.memory = imports.env.memory;
+                    Module.instance = mod;
+
+                    try {
+                        mod.exports.run()
+                    } catch (e) {
+                        if (e == "SimulateInfiniteLoop") {
+                            return
+                        } else {
+                            console.log("exception thrown: " + e);
+                        }
+                    }
+                });
+        });
+    </script>
+
+    <div id="console"></div>
+</body>
+
+</html>

@@ -8,9 +8,4 @@ members = [
     "./server/"
 ]
 
-[lib]
-name = "client"
-path = "src/client.rs"
-crate-type = ["cdylib"]
-
 [dependencies]
