@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
 use std::ptr::null_mut;
 use std::cell::RefCell;
@@ -32,7 +32,7 @@ pub fn console_log(s: &str) {
 // Should only be called once
 pub unsafe fn set_main_loop_callback<T>(callback: T)
 where
-    T: FnMut(),
+    T: FnMut() + 'static,
 {
     MAIN_LOOP_CALLBACK
         .with(|cb| *cb.borrow_mut() = Box::into_raw(Box::new(callback)) as *mut c_void);
@@ -81,7 +81,7 @@ impl<T> Drop for CallbackHandle<T> {
 // sets a websocket's onopen callback, returns a CallbackHandle which must live as long as the socket
 pub unsafe fn websocket_onopen<T>(socket: SocketId, callback: T) -> CallbackHandle<T>
 where
-    T: Fn(),
+    T: Fn() + 'static,
 {
     pub unsafe extern "C" fn wrapper<T>(arg: *mut c_void)
     where
@@ -99,13 +99,13 @@ where
 // sets a websocket's onmessage callback, returns a CallbackHandle which must live as long as the socket
 pub unsafe fn websocket_onmessage<T>(socket: SocketId, callback: T) -> CallbackHandle<T>
 where
-    T: Fn(&str),
+    T: Fn(&str) + 'static,
 {
     pub unsafe extern "C" fn wrapper<T>(msg_ptr: *const u8, arg: *mut c_void)
     where
         T: Fn(&str),
     {
-        let msg = CString::from_raw(msg_ptr as *mut c_char);
+        let msg = CStr::from_ptr(msg_ptr as *mut c_char);
         let callback = arg as *mut T;
         (*callback)(msg.to_str().unwrap());
     }

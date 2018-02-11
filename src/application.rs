@@ -1,36 +1,37 @@
-use platform::websocket::WebSocket;
+use std::f32;
+use std::rc::Rc;
+
+use simple_renderer::SimpleRenderer;
+use rendering::TextureImage;
+use renderer_gl::GLRenderer;
+use core::Image;
+use vec2::Vec2;
 
 pub fn init() -> Box<FnMut()> {
     println!("Start the application!");
 
-    let mut sockets = Vec::new();
-    sockets.push(WebSocket::connect("ws://localhost:3012").unwrap());
-    let mut ping = true;
-    let mut x = 1;
-    let mut clear = false;
+    let mut renderer = SimpleRenderer::<GLRenderer>::new((640.0, 480.0)).unwrap();
+
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    let example_image = Rc::new(Image {
+        data: vec![255,  0,  0,255,   0,255,  0,255,
+                     0,  0,255,255, 255,255,255,255],
+        width: 2,
+        height: 2,
+    });
+
+    let example_texture = TextureImage::new(example_image);
+    let mut timer = 0.0;
+    let position = Vec2(200.0, 200.0);
     Box::new(move || {
-        if clear {
-            sockets.clear();
-        }
+        timer = timer + 0.016;
 
-        for socket in sockets.iter_mut() {
-            if socket.open() {
-                if ping {
-                    let msg = format!("{}", x);
-                    println!("Ping: {}", x);
-                    socket.send(&msg).unwrap();
-                    ping = false;
-                    x += 1;
-                }
+        let angle = (timer % 1.0) * f32::consts::PI * 2.0;
+        //let offset = Vec2(angle.cos(), angle.sin()) * 20.0;
+        renderer
+            .draw_texture(&example_texture, position, 100.0, 0.0)
+            .unwrap();
 
-                while let Some(msg) = socket.next() {
-                    println!("Pong: {}", msg);
-                    ping = true;
-                    if x > 10 {
-                        clear = true;
-                    }
-                }
-            }
-        }
+        renderer.do_render().unwrap();
     })
 }

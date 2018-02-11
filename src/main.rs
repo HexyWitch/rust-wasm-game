@@ -6,7 +6,13 @@ mod platform;
 mod platform_js;
 #[cfg(not(target_arch = "wasm32"))]
 mod platform_native;
+
 mod application;
+mod core;
+mod rendering;
+mod renderer_gl;
+mod vec2;
+mod simple_renderer;
 
 #[cfg(target_arch = "wasm32")]
 use std::io;
@@ -25,7 +31,7 @@ fn main() {
 
     let mut update = application::init();
     unsafe {
-        platform_js::js::set_main_loop_callback(|| update());
+        platform_js::js::set_main_loop_callback(move || update());
     }
 }
 
