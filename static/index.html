@@ -6,6 +6,9 @@
 </head>
 
 <body class="container">
+    <script src="util.js"></script>
+    <script src="websocket.js"></script>
+    <script src="webgl.js"></script>
     <script>
         const Module = {};
 
@@ -28,263 +31,6 @@
                 );
         }
 
-        function copyCStr(module, ptr) {
-            let orig_ptr = ptr;
-            const collectCString = function* () {
-                while (HEAPU8[ptr] !== 0) {
-                    if (HEAPU8[ptr] === undefined) { throw new Error("Tried to read undef mem") }
-                    yield HEAPU8[ptr]
-                    ptr += 1
-                }
-            }
-
-            const buffer_as_u8 = new Uint8Array(collectCString())
-            const utf8Decoder = new TextDecoder("UTF-8");
-            const buffer_as_utf8 = utf8Decoder.decode(buffer_as_u8);
-            return buffer_as_utf8
-        }
-
-        function newString(module, str) {
-            const utf8Encoder = new TextEncoder("UTF-8");
-            let string_buffer = utf8Encoder.encode(str)
-            let len = string_buffer.length
-            let ptr = module.alloc_str(len + 1)
-
-            for (i = 0; i < len; i++) {
-                HEAPU8[ptr + i] = string_buffer[i]
-            }
-            HEAPU8[ptr + len] = 0;
-
-            return ptr;
-        }
-
-        var sockets = [];
-
-        function websocket_create(url_ptr) {
-            let url_str = copyCStr(Module, url_ptr);
-            var sock = new WebSocket(url_str);
-            var len = sockets.push(sock);
-            return len - 1;
-        }
-
-        function websocket_send(socket_id, data_ptr) {
-            let data_str = copyCStr(Module, data_ptr);
-            let sock = sockets[socket_id];
-            sock.send(data_str);
-        }
-
-        function websocket_onopen(socket_id, fn_ptr, arg) {
-            var socket = sockets[socket_id];
-            var f = Module.instance.exports.__web_table.get(fn_ptr)
-            socket.onopen = function () {
-                f(arg);
-            }
-        }
-
-        function websocket_close(socket_id, code, reason_ptr) {
-            var socket = sockets[socket_id];
-            var reason = copyCStr(Module, reason_ptr);
-            sockets[socket_id] = null;
-            socket.close(code, reason);
-        }
-
-        function websocket_onmessage(socket_id, fn_ptr, arg) {
-            var socket = sockets[socket_id];
-            var f = Module.instance.exports.__web_table.get(fn_ptr)
-            socket.onmessage = function (message) {
-                var message_ptr = newString(Module, message.data);
-                f(message_ptr, arg);
-            }
-        }
-
-        const gl = {
-            context: null,
-
-            programs: [],
-            program_uniforms: [],
-
-            shaders: [],
-            textures: [],
-            buffers: [],
-
-            uniform_locations: [],
-        }
-
-        function gl_create_texture() {
-            let ref = gl.textures.push(gl.context.createTexture()) - 1;
-            return ref;
-        }
-        function gl_bind_texture(target, texture_ref) {
-            var texture = gl.textures[texture_ref];
-            gl.context.bindTexture(target, texture);
-        };
-        function gl_tex_parameter_i(target, pname, param) {
-            gl.context.texParameteri(target, pname, param);
-        }
-        // Partially implemented
-        function gl_tex_image_2d(target, level, internalFormat, width, height, border, format, data_type, pixels_ptr) {
-            if (data_type == WebGLRenderingContext.UNSIGNED_BYTE && format == WebGLRenderingContext.RGBA) {
-
-                const buffer = Module.instance.exports.memory.buffer;
-                var pixels;
-                if (pixels_ptr == 0) {
-                    pixels = new Uint8Array(width * height * 4)
-                } else {
-                    pixels = new Uint8Array(buffer, pixels_ptr, width * height * 4)
-                }
-                gl.context.texImage2D(target, level, internalFormat, width, height, border, format, data_type, pixels);
-            } else {
-                throw "Only format of RGBA and data type of UNSIGNED_BYTE supported"
-            }
-        }
-        function gl_tex_sub_image_2d(target, level, xoffset, yoffset, width, height, format, data_type, pixels_ptr) {
-            if (data_type == WebGLRenderingContext.UNSIGNED_BYTE && format == WebGLRenderingContext.RGBA) {
-                const buffer = Module.instance.exports.memory.buffer;
-                var pixels;
-                if (pixels_ptr == 0) {
-                    pixels = new Uint8Array(width * height * 4)
-                } else {
-                    pixels = new Uint8Array(buffer, pixels_ptr, width * height * 4)
-                }
-                gl.context.texSubImage2D(target, level, xoffset, yoffset, width, height, format, data_type, pixels);
-            } else {
-                throw "Only format of RGBA and data type of UNSIGNED_BYTE supported"
-            }
-        }
-        function gl_create_buffer() {
-            var ref = gl.buffers.push(gl.context.createBuffer()) - 1;
-            return ref;
-        };
-        function gl_blend_func(sfactor, dfactor) {
-            gl.context.blendFunc(sfactor, dfactor);
-        }
-        function gl_enable(capability) {
-            gl.context.enable(capability);
-        }
-        function gl_bind_buffer(target, buffer_ref) {
-            var buffer = gl.buffers[buffer_ref];
-            gl.context.bindBuffer(target, buffer);
-        }
-        function gl_buffer_data(target, size, data_ptr, usage) {
-            const buffer = Module.instance.exports.memory.buffer;
-            var data = new Uint8Array(buffer, data_ptr, size);
-            gl.context.bufferData(target, data, usage);
-        }
-        function gl_use_program(program_ref) {
-            var program = gl.programs[program_ref];
-            gl.context.useProgram(program);
-        }
-        function gl_get_uniform_location(program_ref, name_ptr) {
-            var program = gl.programs[program_ref];
-            var name = copyCStr(Module, name_ptr);
-            var ref = gl.program_uniforms[program_ref][name];
-            if (ref == undefined) {
-                var location = gl.context.getUniformLocation(program, name);
-                if (location == null) {
-                    throw "Could not find uniform '" + name + "'";
-                }
-                ref = gl.uniform_locations.push(location) - 1;
-                gl.program_uniforms[program_ref][name] = ref;
-            }
-            return ref;
-        };
-        function gl_uniform2f(location_ref, v0, v1) {
-            var location = gl.uniform_locations[location_ref];
-            gl.context.uniform2f(location, v0, v1);
-        }
-        function gl_active_texture(texture) {
-            gl.context.activeTexture(texture);
-        }
-        function gl_uniform1i(location_ref, v0) {
-            var location = gl.uniform_locations[location_ref];
-            gl.context.uniform1i(location, v0);
-        }
-        function gl_get_attrib_location(program_ref, name_ptr) {
-            var program = gl.programs[program_ref];
-            var name = copyCStr(Module, name_ptr);
-            var location = gl.context.getAttribLocation(program, name);
-            return location;
-        };
-        function gl_enable_vertex_attrib_array(index) {
-            gl.context.enableVertexAttribArray(index);
-        }
-        function gl_vertex_attrib_pointer(index, size, type, normalized, stride, offset) {
-            gl.context.vertexAttribPointer(index, size, type, normalized, stride, offset);
-        }
-        function gl_draw_arrays(mode, first, count) {
-            gl.context.drawArrays(mode, first, count);
-        }
-        function gl_clear_color(r, g, b, a) {
-            gl.context.clearColor(r, g, b, a);
-        }
-        function gl_clear(mask) {
-            gl.context.clear(mask);
-        }
-        function gl_create_shader(type) {
-            var ref = gl.shaders.push(gl.context.createShader(type)) - 1;
-            return ref;
-        }
-        function gl_shader_source(shader_ref, source_ptr) {
-            var shader = gl.shaders[shader_ref];
-            var source = copyCStr(Module, source_ptr);
-            gl.context.shaderSource(shader, source);
-        }
-        function gl_compile_shader(shader_ref) {
-            var shader = gl.shaders[shader_ref];
-            gl.context.compileShader(shader);
-        }
-        function gl_get_shader_parameter(shader_ref, pname) {
-            var shader = gl.shaders[shader_ref];
-            return gl.context.getShaderParameter(shader, pname);
-        };
-        function gl_shader_info_log_len(shader_ref) {
-            var shader = gl.shaders[shader_ref];
-            const utf8Encoder = new TextEncoder("UTF-8");
-            let string_buffer = utf8Encoder.encode(gl.context.getShaderInfoLog(shader))
-            return string_buffer.length
-        }
-        function gl_get_shader_info_log(shader_ref, size, str_ptr) {
-            var shader = gl.shaders[shader_ref];
-            const utf8Encoder = new TextEncoder("UTF-8");
-            let string_buffer = utf8Encoder.encode(gl.context.getShaderInfoLog(shader))
-            for (i = 0; i < size; i++) {
-                HEAPU8[str_ptr + i] = string_buffer[i]
-            }
-        }
-        function gl_create_program() {
-            var ref = gl.programs.push(gl.context.createProgram()) - 1;
-            gl.program_uniforms[ref] = {}
-            return ref;
-        }
-        function gl_attach_shader(program_ref, shader_ref) {
-            var program = gl.programs[program_ref];
-            var shader = gl.shaders[shader_ref];
-            gl.context.attachShader(program, shader);
-        }
-        function gl_link_program(program_ref) {
-            var program = gl.programs[program_ref];
-            gl.context.linkProgram(program);
-        }
-        function gl_get_program_parameter(program_ref, pname) {
-            var program = gl.programs[program_ref];
-            return gl.context.getProgramParameter(program, pname);
-        }
-        function gl_program_info_log_len(program_ref) {
-            var program = gl.programs[program_ref];
-            let string_buffer = utf8Encoder.encode(gl.context.getProgramInfoLog(program))
-            return string_buffer.length
-        }
-        function gl_get_program_info_log(program_ref, size, str_ptr) {
-            var program = gl.programs[program_ref];
-            let string_buffer = utf8Encoder.encode(gl.context.getProgramInfoLog(program))
-            if (size != string_buffer.length) {
-                throw "mismatched info log length"
-            }
-            for (i = 0; i < size; i++) {
-                HEAPU8[str_ptr + i] = string_buffer[i]
-            }
-        }
-
         const imports = {
             env: {
                 "__web_on_grow": function () {
@@ -297,10 +43,6 @@
                     HEAPU32 = new Uint32Array(buffer);
                     HEAPF32 = new Float32Array(buffer);
                     HEAPF64 = new Float64Array(buffer);
-                },
-                js_console_log: function (ptr) {
-                    let str = copyCStr(Module, ptr);
-                    console.log(str);
                 },
                 js_websocket_create: websocket_create,
                 js_websocket_send: websocket_send,
@@ -342,6 +84,15 @@
                 js_gl_program_info_log_len: gl_program_info_log_len,
                 js_gl_get_program_info_log: gl_get_program_info_log,
 
+                js_gl_delete_texture: gl_delete_texture,
+                js_gl_delete_shader: gl_delete_shader,
+                js_gl_delete_buffer: gl_delete_buffer,
+                js_gl_delete_program: gl_delete_program,
+                js_gl_delete_uniform_location: gl_delete_uniform_location,
+
+                sinf: function (n) { return Math.sin(n); },
+                cosf: function (n) { return Math.cos(n); },
+                fmodf: function (l, r) { return l % r; },
                 js_set_main_loop: function (fn_ptr) {
                     var f = Module.instance.exports.__web_table.get(fn_ptr);
                     function runner() {
@@ -358,8 +109,8 @@
         window.addEventListener("load", function (event) {
             fetchAndInstantiate("rust-websock.wasm", imports)
                 .then(mod => {
-                    Module.alloc = mod.exports.alloc;
                     Module.alloc_str = mod.exports.alloc_str;
+                    Module.dealloc_str = mod.exports.dealloc_str;
                     Module.memory = imports.env.memory;
                     Module.instance = mod;
 

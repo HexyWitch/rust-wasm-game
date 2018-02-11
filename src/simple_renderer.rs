@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
-use vec2::Vec2;
 use rendering::{Program, Renderer, Texture, TextureAtlas, TextureImage, Uniform, Vertex,
                 VertexAttributeType};
+use vec2::Vec2;
 
 static VERTEX_SHADER: &'static str = include_str!("../shaders/vertex.glsl");
 static FRAGMENT_SHADER: &'static str = include_str!("../shaders/fragment.glsl");
@@ -79,10 +79,14 @@ where
         };
         let size = (tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
 
-        let rect = (0.0, 0.0, size.0 as f32 * scale, size.1 as f32 * scale);
+        let rect = (
+            size.0 as f32 / -2.0 * scale,
+            size.1 as f32 / -2.0 * scale,
+            size.0 as f32 / 2.0 * scale,
+            size.1 as f32 / 2.0 * scale,
+        );
 
-        //let rotate = |(x, y), a: f32| (x * a.cos() - y * a.sin(), x * a.sin() + y * a.cos());
-        let rotate = |(x, y), _| (x, y);
+        let rotate = |(x, y), a: f32| (x * a.cos() - y * a.sin(), x * a.sin() + y * a.cos());
         let quad = [
             rotate((rect.0, rect.1), rotation),
             rotate((rect.0, rect.3), rotation),

@@ -56,8 +56,6 @@ pub const MAX_FRAGMENT_UNIFORM_VECTORS: GLenum = 0x8DFD;
 pub const SHADER_TYPE: GLenum = 0x8B4F;
 pub const SHADING_LANGUAGE_VERSION: GLenum = 0x8B8C;
 pub const CURRENT_PROGRAM: GLenum = 0x8B8D;
-// NOT PART OF THE WEBGL API
-pub const INFO_LOG_LENGTH: GLenum = 0x8B8E;
 
 pub const BYTE: GLenum = 0x1400;
 pub const UNSIGNED_BYTE: GLenum = 0x1401;

@@ -3,14 +3,15 @@ use std::rc::Rc;
 
 use simple_renderer::SimpleRenderer;
 use rendering::TextureImage;
-use renderer_gl::GLRenderer;
+use renderer_webgl::GLRenderer;
 use core::Image;
 use vec2::Vec2;
 
 pub fn init() -> Box<FnMut()> {
     println!("Start the application!");
 
-    let mut renderer = SimpleRenderer::<GLRenderer>::new((640.0, 480.0)).unwrap();
+    let mut renderer =
+        SimpleRenderer::<GLRenderer>::new((640.0, 480.0)).expect("Error creating renderer");
 
     #[cfg_attr(rustfmt, rustfmt_skip)]
     let example_image = Rc::new(Image {
@@ -21,15 +22,19 @@ pub fn init() -> Box<FnMut()> {
     });
 
     let example_texture = TextureImage::new(example_image);
+    let cycle_time = 2.5;
     let mut timer = 0.0;
-    let position = Vec2(200.0, 200.0);
+    let position = Vec2(320.0, 240.0);
     Box::new(move || {
         timer = timer + 0.016;
+        while timer > cycle_time {
+            timer -= cycle_time;
+        }
 
-        let angle = (timer % 1.0) * f32::consts::PI * 2.0;
-        //let offset = Vec2(angle.cos(), angle.sin()) * 20.0;
+        let angle = (timer / cycle_time) * f32::consts::PI * 2.0;
+        let offset = Vec2(angle.cos(), angle.sin()) * 150.0;
         renderer
-            .draw_texture(&example_texture, position, 100.0, 0.0)
+            .draw_texture(&example_texture, position + offset, 100.0, angle)
             .unwrap();
 
         renderer.do_render().unwrap();

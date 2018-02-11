@@ -13,8 +13,16 @@ pub use self::constants::*;
 use self::types::*;
 
 extern "C" {
-    fn js_gl_create_texture() -> GLuint;
-    fn js_gl_bind_texture(target: GLenum, texture: GLuint);
+    fn js_gl_enable(capability: GLenum);
+    fn js_gl_blend_func(sfactor: GLenum, dfactor: GLenum);
+    fn js_gl_draw_arrays(mode: GLenum, first: GLint, count: GLsizei);
+    fn js_gl_clear_color(r: GLclampf, g: GLclampf, b: GLclampf, a: GLclampf);
+    fn js_gl_clear(mask: GLbitfield);
+
+    fn js_gl_create_texture() -> TextureRef;
+    fn js_gl_delete_texture(texture: TextureRef);
+    fn js_gl_bind_texture(target: GLenum, texture: TextureRef);
+    fn js_gl_active_texture(texture: GLenum);
     fn js_gl_tex_parameter_i(target: GLenum, pname: GLenum, param: i32);
     fn js_gl_tex_image_2d(
         target: GLenum,
@@ -25,7 +33,7 @@ extern "C" {
         border: GLint,
         format: GLenum,
         data_type: GLenum,
-        pixels: *const u8,
+        pixels: *const c_void,
     );
     fn js_gl_tex_sub_image_2d(
         target: GLuint,
@@ -38,60 +46,143 @@ extern "C" {
         data_type: GLenum,
         pixels: *const u8,
     );
-    fn js_gl_create_buffer() -> GLuint;
-    fn js_gl_blend_func(sfactor: GLenum, dfactor: GLenum);
-    fn js_gl_enable(capability: GLenum);
-    fn js_gl_bind_buffer(target: GLenum, buffer: GLuint);
-    fn js_gl_buffer_data(target: GLenum, size: GLsizeiptr, data: *const c_void, usage: GLenum);
-    fn js_gl_use_program(program: GLuint);
-    fn js_gl_get_uniform_location(program: GLuint, name: *const GLchar) -> GLuint;
-    fn js_gl_uniform2f(location: GLuint, v0: GLfloat, v1: GLfloat);
-    fn js_gl_active_texture(texture: GLuint);
-    fn js_gl_uniform1i(location: GLuint, v0: GLint);
-    fn js_gl_get_attrib_location(program: GLuint, name: *const GLchar) -> GLint;
-    fn js_gl_enable_vertex_attrib_array(index: GLuint);
+
+    fn js_gl_create_shader(shader_type: GLenum) -> ShaderRef;
+    fn js_gl_delete_shader(shader: ShaderRef);
+    fn js_gl_shader_source(shader: ShaderRef, source: *const c_char);
+    fn js_gl_compile_shader(shader: ShaderRef);
+    fn js_gl_get_shader_parameter(shader: ShaderRef, pname: GLenum) -> GLint;
+    fn js_gl_shader_info_log_len(shader: ShaderRef) -> GLsizei;
+    fn js_gl_get_shader_info_log(shader: ShaderRef, size: GLsizei, log: *mut c_char);
+
+    fn js_gl_create_program() -> GLuint;
+    fn js_gl_delete_program(program: ProgramRef);
+    fn js_gl_attach_shader(program: ProgramRef, shader: ShaderRef);
+    fn js_gl_link_program(program: GLuint);
+    fn js_gl_use_program(program: ProgramRef);
+    fn js_gl_get_program_parameter(program: GLuint, pname: GLenum) -> GLint;
+    fn js_gl_program_info_log_len(shader: ShaderRef) -> GLsizei;
+    fn js_gl_get_program_info_log(program: GLuint, size: GLsizei, log: *mut c_char);
+
+    fn js_gl_get_uniform_location(program: ProgramRef, name: *const c_char) -> UniformLocation;
+    fn js_gl_delete_uniform_location(location: UniformLocation);
+    fn js_gl_uniform2f(location: UniformLocation, v0: GLfloat, v1: GLfloat);
+    fn js_gl_uniform1i(location: UniformLocation, v0: GLint);
+
+    fn js_gl_create_buffer() -> BufferRef;
+    fn js_gl_delete_buffer(buffer: BufferRef);
+    fn js_gl_bind_buffer(target: GLenum, buffer: BufferRef);
+    fn js_gl_buffer_data(target: GLenum, size: GLsizeiptr, data: *const u8, usage: GLenum);
+
+    fn js_gl_get_attrib_location(program: ProgramRef, name: *const c_char) -> GLint;
+    fn js_gl_enable_vertex_attrib_array(index: AttribIndex);
     fn js_gl_vertex_attrib_pointer(
-        index: GLuint,
+        index: AttribIndex,
         size: GLint,
         attrib_type: GLenum,
         normalized: GLboolean,
         stride: GLsizei,
         offset: GLintptr,
     );
-    fn js_gl_draw_arrays(mode: GLenum, first: GLint, count: GLsizei);
-    fn js_gl_clear_color(r: GLclampf, g: GLclampf, b: GLclampf, a: GLclampf);
-    fn js_gl_clear(mask: GLbitfield);
-    fn js_gl_create_shader(shader_type: GLenum) -> GLuint;
-    fn js_gl_shader_source(shader: GLuint, source: *const GLchar);
-    fn js_gl_compile_shader(shader: GLuint);
-    fn js_gl_get_shader_parameter(shader: GLuint, pname: GLenum) -> GLint;
-    fn js_gl_shader_info_log_len(shader: GLuint) -> GLint;
-    fn js_gl_get_shader_info_log(shader: GLuint, size: GLsizei, log: *mut GLchar);
-    fn js_gl_create_program() -> GLuint;
-    fn js_gl_attach_shader(program: GLuint, shader: GLuint);
-    fn js_gl_link_program(program: GLuint);
-    fn js_gl_get_program_parameter(program: GLuint, pname: GLenum) -> GLint;
-    fn js_gl_program_info_log_len(program: GLuint) -> GLint;
-    fn js_gl_get_program_info_log(program: GLuint, size: GLsizei, log: *mut GLchar);
-}
-pub unsafe fn GenTextures(n: GLsizei, textures: &mut GLuint) {
-    // WebGL API only supports creating one texture at a time
-    assert_eq!(n, 1);
-    let gl_ref = js_gl_create_texture();
-    *textures = gl_ref;
 }
 
-pub unsafe fn BindTexture(target: GLenum, texture: GLuint) {
-    js_gl_bind_texture(target, texture);
+pub type BufferRef = u32;
+pub type TextureRef = u32;
+pub type ProgramRef = u32;
+pub type ShaderRef = u32;
+pub type UniformLocation = u32;
+pub type AttribIndex = GLuint;
+
+pub struct TextureHandle(TextureRef);
+impl Drop for TextureHandle {
+    fn drop(&mut self) {
+        unsafe {
+            js_gl_delete_texture(self.0);
+        }
+    }
 }
 
-pub unsafe fn TexParameteri(target: GLenum, pname: GLenum, param: GLint) {
+pub struct ShaderHandle(ShaderRef);
+impl Drop for ShaderHandle {
+    fn drop(&mut self) {
+        unsafe {
+            js_gl_delete_shader(self.0);
+        }
+    }
+}
+
+pub struct BufferHandle(BufferRef);
+impl Drop for BufferHandle {
+    fn drop(&mut self) {
+        unsafe {
+            js_gl_delete_buffer(self.0);
+        }
+    }
+}
+
+pub struct ProgramHandle(ProgramRef);
+impl Drop for ProgramHandle {
+    fn drop(&mut self) {
+        unsafe {
+            js_gl_delete_program(self.0);
+        }
+    }
+}
+
+pub struct UniformLocationHandle(UniformLocation);
+impl Drop for UniformLocationHandle {
+    fn drop(&mut self) {
+        unsafe {
+            js_gl_delete_uniform_location(self.0);
+        }
+    }
+}
+
+pub fn enable(cap: GLenum) {
+    unsafe {
+        js_gl_enable(cap);
+    }
+}
+pub fn blend_func(sfactor: GLenum, dfactor: GLenum) {
+    unsafe {
+        js_gl_blend_func(sfactor, dfactor);
+    }
+}
+pub fn draw_arrays(mode: GLenum, first: GLint, count: usize) {
+    unsafe {
+        js_gl_draw_arrays(mode, first, count as GLsizei);
+    }
+}
+pub fn clear_color(r: GLclampf, g: GLclampf, b: GLclampf, a: GLclampf) {
+    unsafe {
+        js_gl_clear_color(r, g, b, a);
+    }
+}
+pub fn clear(mask: GLbitfield) {
+    unsafe {
+        js_gl_clear(mask);
+    }
+}
+
+pub fn create_texture() -> TextureHandle {
+    unsafe { TextureHandle(js_gl_create_texture()) }
+}
+pub fn bind_texture(target: GLenum, texture: &TextureHandle) {
+    unsafe {
+        js_gl_bind_texture(target, texture.0);
+    }
+}
+pub fn active_texture(texture: GLenum) {
+    unsafe {
+        js_gl_active_texture(texture);
+    }
+}
+pub fn tex_parameter_i(target: GLenum, pname: GLenum, param: GLint) {
     unsafe {
         js_gl_tex_parameter_i(target, pname, param);
     }
 }
-
-pub unsafe fn TexImage2D(
+pub fn tex_image_2d(
     target: GLenum,
     level: GLint,
     internalFormat: GLenum,
@@ -100,7 +191,7 @@ pub unsafe fn TexImage2D(
     border: GLint,
     format: GLenum,
     data_type: GLenum,
-    pixels: *const u8,
+    pixels: Option<&[u8]>,
 ) {
     unsafe {
         js_gl_tex_image_2d(
@@ -112,12 +203,11 @@ pub unsafe fn TexImage2D(
             border,
             format,
             data_type,
-            pixels,
+            pixels.map_or(ptr::null(), |d| d.as_ptr() as *const c_void),
         );
     }
 }
-
-pub unsafe fn TexSubImage2D(
+pub fn tex_sub_image_2d(
     target: GLenum,
     level: GLint,
     xoffset: GLint,
@@ -126,7 +216,7 @@ pub unsafe fn TexSubImage2D(
     height: GLsizei,
     format: GLenum,
     data_type: GLenum,
-    pixels: *const u8,
+    pixels: &[u8],
 ) {
     unsafe {
         js_gl_tex_sub_image_2d(
@@ -138,153 +228,136 @@ pub unsafe fn TexSubImage2D(
             height,
             format,
             data_type,
-            pixels,
+            pixels.as_ptr(),
         );
     }
 }
 
-pub unsafe fn GenBuffers(n: GLint, buffers: &mut GLuint) {
-    // WebGL API only supports creating one buffer at a time
-    assert_eq!(n, 1);
-    let gl_ref = js_gl_create_buffer();
-    *buffers = gl_ref;
+pub fn create_shader(shader_type: GLenum) -> ShaderHandle {
+    let gl_ref = unsafe { js_gl_create_shader(shader_type) };
+    ShaderHandle(gl_ref)
+}
+pub fn shader_source(shader: &ShaderHandle, source: &str) {
+    let c_source = CString::new(source).expect("Shader source not valid UTF-8");
+    unsafe {
+        js_gl_shader_source(shader.0, c_source.as_ptr());
+    }
+}
+pub fn compile_shader(shader: &ShaderHandle) {
+    unsafe {
+        js_gl_compile_shader(shader.0);
+    }
+}
+pub fn get_shader_parameter(shader: &ShaderHandle, pname: GLenum) -> GLint {
+    unsafe { js_gl_get_shader_parameter(shader.0, pname) }
+}
+pub fn get_shader_info_log<'a>(shader: &ShaderHandle) -> String {
+    unsafe {
+        let len = js_gl_shader_info_log_len(shader.0);
+        let mut buf = vec![0; len as usize];
+        js_gl_get_shader_info_log(
+            shader.0,
+            len as GLsizeiptr,
+            (&mut buf).as_mut_ptr() as *mut c_char,
+        );
+        String::from_utf8(buf).expect("Shader info log is not valid UTF-8")
+    }
 }
 
-pub unsafe fn BlendFunc(sfactor: GLenum, dfactor: GLenum) {
-    js_gl_blend_func(sfactor, dfactor);
+pub fn create_program() -> ProgramHandle {
+    let gl_ref = unsafe { js_gl_create_program() };
+    ProgramHandle(gl_ref)
+}
+pub fn attach_shader(program: &ProgramHandle, shader: &ShaderHandle) {
+    unsafe {
+        js_gl_attach_shader(program.0, shader.0);
+    }
+}
+pub fn link_program(program: &ProgramHandle) {
+    unsafe {
+        js_gl_link_program(program.0);
+    }
+}
+pub fn use_program(program: &ProgramHandle) {
+    unsafe {
+        js_gl_use_program(program.0);
+    }
+}
+pub fn get_program_parameter(program: &ProgramHandle, pname: GLenum) -> GLint {
+    unsafe { js_gl_get_program_parameter(program.0, pname) }
+}
+pub fn get_program_info_log<'a>(program: &ProgramHandle) -> String {
+    unsafe {
+        let len = js_gl_program_info_log_len(program.0);
+        let mut buf = vec![0; len as usize];
+        js_gl_get_program_info_log(
+            program.0,
+            len as GLsizeiptr,
+            (&mut buf).as_mut_ptr() as *mut c_char,
+        );
+        String::from_utf8(buf).expect("Program info log is not valid UTF-8")
+    }
 }
 
-pub unsafe fn Enable(cap: GLenum) {
-    js_gl_enable(cap);
+pub fn get_uniform_location(program: &ProgramHandle, name: &str) -> UniformLocationHandle {
+    let c_str = CString::new(name).expect("uniform location name not valid UTF-8");
+    let location = unsafe { js_gl_get_uniform_location(program.0, c_str.as_ptr()) };
+    UniformLocationHandle(location)
+}
+pub fn uniform_2f(location: &UniformLocationHandle, v0: GLfloat, v1: GLfloat) {
+    unsafe {
+        js_gl_uniform2f(location.0, v0, v1);
+    }
+}
+pub fn uniform_1i(location: &UniformLocationHandle, v0: GLint) {
+    unsafe {
+        js_gl_uniform1i(location.0, v0);
+    }
 }
 
-pub unsafe fn BindBuffer(target: GLenum, buffer: GLuint) {
-    js_gl_bind_buffer(target, buffer);
+pub fn create_buffer() -> BufferHandle {
+    let gl_ref = unsafe { js_gl_create_buffer() };
+    BufferHandle(gl_ref)
+}
+pub fn bind_buffer(target: GLenum, buffer: &BufferHandle) {
+    unsafe {
+        js_gl_bind_buffer(target, buffer.0);
+    }
+}
+pub unsafe fn buffer_data(target: GLenum, size: GLsizei, data: *const u8, usage: GLenum) {
+    js_gl_buffer_data(target, size, data, usage);
 }
 
-pub unsafe fn BufferData(target: GLenum, size: GLsizeiptr, data: *const u8, usage: GLenum) {
-    js_gl_buffer_data(target, size, mem::transmute(data), usage);
+pub fn get_attrib_location(program: &ProgramHandle, name: &str) -> Result<AttribIndex, String> {
+    let c_str = CString::new(name).expect("attrib location name not UTF-8");
+    let location = unsafe { js_gl_get_attrib_location(program.0, c_str.as_ptr()) };
+    if location < 0 {
+        Err(format!("Attribute '{}' could not be found", name))
+    } else {
+        Ok(location as AttribIndex)
+    }
 }
-
-pub unsafe fn UseProgram(program: GLuint) {
-    js_gl_use_program(program);
+pub fn enable_vertex_attrib_array(index: AttribIndex) {
+    unsafe {
+        js_gl_enable_vertex_attrib_array(index);
+    }
 }
-
-pub unsafe fn GetUniformLocation(program: GLuint, name: *const c_char) -> GLuint {
-    js_gl_get_uniform_location(program, name as *const u8)
-}
-
-pub unsafe fn Uniform2f(location: GLuint, v0: GLfloat, v1: GLfloat) {
-    js_gl_uniform2f(location, v0, v1);
-}
-
-pub unsafe fn ActiveTexture(texture: GLenum) {
-    js_gl_active_texture(texture);
-}
-
-pub unsafe fn Uniform1i(location: GLuint, v0: GLint) {
-    js_gl_uniform1i(location, v0);
-}
-
-pub unsafe fn GetAttribLocation(program: GLuint, name: *const c_char) -> GLint {
-    js_gl_get_attrib_location(program, name as *const u8)
-}
-
-pub unsafe fn EnableVertexAttribArray(index: GLuint) {
-    js_gl_enable_vertex_attrib_array(index);
-}
-
-pub unsafe fn VertexAttribPointer(
-    index: u32,
-    size: GLsizei,
+pub fn vertex_attrib_pointer(
+    index: AttribIndex,
+    size: usize,
     attrib_type: GLenum,
-    normalized: GLboolean,
-    stride: GLsizei,
-    offset: *const c_void,
+    normalized: bool,
+    stride: usize,
+    offset: usize,
 ) {
-    js_gl_vertex_attrib_pointer(
-        index,
-        size,
-        attrib_type,
-        normalized,
-        stride,
-        offset as GLintptr,
-    );
-}
-
-pub unsafe fn DrawArrays(mode: GLenum, first: GLint, count: GLsizei) {
-    js_gl_draw_arrays(mode, first, count);
-}
-
-pub unsafe fn ClearColor(r: GLclampf, g: GLclampf, b: GLclampf, a: GLclampf) {
-    js_gl_clear_color(r, g, b, a);
-}
-
-pub unsafe fn Clear(mask: GLbitfield) {
-    js_gl_clear(mask);
-}
-
-pub unsafe fn CreateShader(shader_type: GLenum) -> GLuint {
-    js_gl_create_shader(shader_type)
-}
-
-pub unsafe fn ShaderSource(
-    shader: GLuint,
-    count: GLsizei,
-    source: *const *const c_char,
-    _len: *const GLint,
-) {
-    // WebGL only allows setting one source string
-    assert_eq!(count, 1);
-    js_gl_shader_source(shader, (*source) as *const u8);
-}
-
-pub unsafe fn CompileShader(shader: GLuint) {
-    js_gl_compile_shader(shader);
-}
-
-pub unsafe fn GetShaderiv(shader: GLuint, pname: GLenum, params: *mut GLint) {
-    if pname == constants::INFO_LOG_LENGTH {
-        *params = js_gl_shader_info_log_len(shader);
-    } else {
-        *params = js_gl_get_shader_parameter(shader, pname);
+    unsafe {
+        js_gl_vertex_attrib_pointer(
+            index,
+            size as GLint,
+            attrib_type,
+            normalized,
+            stride as GLsizei,
+            offset as GLintptr,
+        );
     }
-}
-
-pub unsafe fn GetShaderInfoLog<'a>(
-    shader: GLuint,
-    max_len: GLsizei,
-    _len: *mut GLsizei,
-    info_log: *mut GLchar,
-) {
-    js_gl_get_shader_info_log(shader, max_len, info_log as *mut GLchar);
-}
-
-pub unsafe fn CreateProgram() -> GLuint {
-    js_gl_create_program()
-}
-
-pub unsafe fn AttachShader(program: GLuint, shader: GLuint) {
-    js_gl_attach_shader(program, shader);
-}
-
-pub unsafe fn LinkProgram(program: GLuint) {
-    js_gl_link_program(program);
-}
-
-pub unsafe fn GetProgramiv(program: GLuint, pname: GLenum, params: *mut GLint) {
-    if pname == constants::INFO_LOG_LENGTH {
-        *params = js_gl_program_info_log_len(program);
-    } else {
-        *params = js_gl_get_program_parameter(program, pname);
-    }
-}
-
-pub unsafe fn GetProgramInfoLog(
-    program: GLuint,
-    max_len: GLsizei,
-    _len: *mut GLsizei,
-    info_log: *mut GLchar,
-) {
-    js_gl_get_program_info_log(program, max_len, info_log);
 }

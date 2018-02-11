@@ -7,10 +7,13 @@ mod platform_js;
 #[cfg(not(target_arch = "wasm32"))]
 mod platform_native;
 
-mod application;
+#[cfg(target_arch = "wasm32")]
+mod application_web;
+#[cfg(not(target_arch = "wasm32"))]
+mod application_native;
 mod core;
 mod rendering;
-mod renderer_gl;
+mod renderer_webgl;
 mod vec2;
 mod simple_renderer;
 
@@ -29,7 +32,7 @@ fn main() {
     io::set_print(Some(Box::new(ConsoleWriter::new())));
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
-    let mut update = application::init();
+    let mut update = application_web::init();
     unsafe {
         platform_js::js::set_main_loop_callback(move || update());
     }
@@ -37,7 +40,7 @@ fn main() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    let mut update = application::init();
+    let mut update = application_native::init();
     loop {
         update();
         thread::sleep(std::time::Duration::from_millis(16));
