@@ -1,15 +1,19 @@
 use std::f32;
 use std::rc::Rc;
+use std::io;
 
 use simple_renderer::SimpleRenderer;
 use rendering::TextureImage;
 use renderer_webgl::GLRenderer;
 use core::Image;
 use vec2::Vec2;
+use platform_web::console_writer::ConsoleWriter;
 
 pub fn init() -> Box<FnMut()> {
-    println!("Start the application!");
+    io::set_print(Some(Box::new(ConsoleWriter::new())));
+    io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
+    println!("Start the application!");
     let mut renderer =
         SimpleRenderer::<GLRenderer>::new((640.0, 480.0)).expect("Error creating renderer");
 

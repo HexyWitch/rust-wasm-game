@@ -115,7 +115,7 @@ function gl_delete_shader(shader_ref) {
 }
 function gl_shader_source(shader_ref, source_ptr) {
     var shader = gl.refs.get(shader_ref);
-    var source = copyCStr(Module, source_ptr);
+    var source = copyCStr(source_ptr);
     gl.context.shaderSource(shader, source);
 }
 function gl_compile_shader(shader_ref) {
@@ -201,7 +201,7 @@ function gl_buffer_data(target, size, data_ptr, usage) {
 
 function gl_get_uniform_location(program_ref, name_ptr) {
     var program = gl.refs.get(program_ref);
-    var name = copyCStr(Module, name_ptr);
+    var name = copyCStr(name_ptr);
     var location = gl.context.getUniformLocation(program, name);
     if (location == null) {
         throw "Could not find uniform '" + name + "'";
@@ -222,7 +222,7 @@ function gl_uniform1i(location_ref, v0) {
 
 function gl_get_attrib_location(program_ref, name_ptr) {
     var program = gl.refs.get(program_ref);
-    var name = copyCStr(Module, name_ptr);
+    var name = copyCStr(name_ptr);
     var location = gl.context.getAttribLocation(program, name);
     return location;
 };

@@ -156,7 +156,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-websock"
+name = "rust-wasm-game"
 version = "0.1.0"
 
 [[package]]

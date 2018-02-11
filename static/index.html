@@ -6,7 +6,6 @@
 </head>
 
 <body class="container">
-    <script src="util.js"></script>
     <script src="websocket.js"></script>
     <script src="webgl.js"></script>
     <script>
@@ -20,6 +19,36 @@
         let HEAPU32 = null;
         let HEAPF32 = null;
         let HEAPF64 = null;
+
+        function copyCStr(ptr) {
+            let orig_ptr = ptr;
+            const collectCString = function* () {
+                while (HEAPU8[ptr] !== 0) {
+                    if (HEAPU8[ptr] === undefined) { throw new Error("Tried to read undef mem") }
+                    yield HEAPU8[ptr]
+                    ptr += 1
+                }
+            }
+
+            const buffer_as_u8 = new Uint8Array(collectCString())
+            const utf8Decoder = new TextDecoder("UTF-8");
+            const buffer_as_utf8 = utf8Decoder.decode(buffer_as_u8);
+            return buffer_as_utf8
+        }
+
+        function newString(str) {
+            const utf8Encoder = new TextEncoder("UTF-8");
+            let string_buffer = utf8Encoder.encode(str)
+            let len = string_buffer.length
+            let ptr = Module.alloc_str(len + 1)
+
+            for (i = 0; i < len; i++) {
+                HEAPU8[ptr + i] = string_buffer[i]
+            }
+            HEAPU8[ptr + len] = 0;
+
+            return ptr;
+        }
 
         function fetchAndInstantiate(url, importObject) {
             return fetch(url).then(response =>
@@ -93,6 +122,10 @@
                 sinf: function (n) { return Math.sin(n); },
                 cosf: function (n) { return Math.cos(n); },
                 fmodf: function (l, r) { return l % r; },
+                js_console_log: function (str_ptr) {
+                    var str = copyCStr(str_ptr);
+                    console.log(str);
+                },
                 js_set_main_loop: function (fn_ptr) {
                     var f = Module.instance.exports.__web_table.get(fn_ptr);
                     function runner() {
@@ -107,12 +140,21 @@
         };
 
         window.addEventListener("load", function (event) {
-            fetchAndInstantiate("rust-websock.wasm", imports)
+            fetchAndInstantiate("rust-wasm-game.wasm", imports)
                 .then(mod => {
                     Module.alloc_str = mod.exports.alloc_str;
                     Module.dealloc_str = mod.exports.dealloc_str;
                     Module.memory = imports.env.memory;
                     Module.instance = mod;
+
+                    Module.HEAP8 = HEAP8;
+                    Module.HEAP16 = HEAP16;
+                    Module.HEAP32 = HEAP32;
+                    Module.HEAPU8 = HEAPU8;
+                    Module.HEAPU16 = HEAPU16;
+                    Module.HEAPU32 = HEAPU32;
+                    Module.HEAPF32 = HEAPF32;
+                    Module.HEAPF64 = HEAPF64;
 
                     console.log("Open webgl context")
                     gl.context = document.getElementById("window").getContext('webgl');
@@ -122,7 +164,7 @@
                         if (e == "SimulateInfiniteLoop") {
                             return
                         } else {
-                            throw "exception thrown: " + e;
+                            throw e;
                         }
                     }
                 });
