@@ -1,4 +1,3 @@
-#[allow(unused)]
 mod api;
 mod texture_atlas;
 mod texture_image;
