@@ -1,11 +1,22 @@
 # rust-wasm-game
 Experimenting with making a game running under the wasm32-unknown-unknown target
 
-## Running
+## Running natively
 
-Currently requires https://github.com/koute/cargo-web for exposing the main function and function table to the web.
+Requires SDL2 development library.
 
 ```
-$ cargo install cargo-web
-$ cargo web start --target=wasm32-unknown-unknown
+cargo run --bin client-native
+```
+
+## Running for web
+
+Currently requires cargo-web for exporting the main function and functions table in wasm. Installation instructions can be found at:  https://github.com/koute/cargo-web
+
+The only currently supported target is wasm32-unknown-unknown, and requires the javascript runtime found in the /static/ folder.
+
+To run simply start the client-web binary using cargo-web:
+
+```
+$ cargo web start --bin client-web --target=wasm32-unknown-unknown
 ```
