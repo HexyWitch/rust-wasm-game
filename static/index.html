@@ -130,9 +130,9 @@
                     var f = Module.instance.exports.__web_table.get(fn_ptr);
                     function runner() {
                         f();
-                        setTimeout(runner, 16)
+                        window.requestAnimationFrame(runner);
                     }
-                    runner()
+                    window.requestAnimationFrame(runner);
 
                     throw "SimulateInfiniteLoop"
                 }

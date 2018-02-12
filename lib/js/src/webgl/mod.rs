@@ -2,11 +2,8 @@ pub mod types;
 #[allow(dead_code)]
 pub mod constants;
 
-use std::ffi::{CStr, CString};
-use std::slice;
-use std::io::Write;
+use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
-use std::mem;
 use std::ptr;
 
 pub use self::constants::*;
@@ -185,7 +182,7 @@ pub fn tex_parameter_i(target: GLenum, pname: GLenum, param: GLint) {
 pub fn tex_image_2d(
     target: GLenum,
     level: GLint,
-    internalFormat: GLenum,
+    internal_format: GLenum,
     width: GLsizei,
     height: GLsizei,
     border: GLint,
@@ -197,7 +194,7 @@ pub fn tex_image_2d(
         js_gl_tex_image_2d(
             target,
             level,
-            internalFormat,
+            internal_format,
             width,
             height,
             border,
