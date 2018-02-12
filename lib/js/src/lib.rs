@@ -1,3 +1,7 @@
+pub mod webgl;
+pub mod websocket;
+pub mod exports;
+
 use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
@@ -26,8 +30,9 @@ pub fn set_main_loop_callback<T>(callback: T)
 where
     T: FnMut() + 'static,
 {
-    MAIN_LOOP_CALLBACK
-        .with(|cb| *cb.borrow_mut() = Box::into_raw(Box::new(callback)) as *mut c_void);
+    MAIN_LOOP_CALLBACK.with(|cb| {
+        *cb.borrow_mut() = Box::into_raw(Box::new(callback)) as *mut c_void
+    });
 
     pub unsafe extern "C" fn wrapper<T>()
     where

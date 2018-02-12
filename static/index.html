@@ -140,7 +140,7 @@
         };
 
         window.addEventListener("load", function (event) {
-            fetchAndInstantiate("rust-wasm-game.wasm", imports)
+            fetchAndInstantiate("client-web.wasm", imports)
                 .then(mod => {
                     Module.alloc_str = mod.exports.alloc_str;
                     Module.dealloc_str = mod.exports.dealloc_str;

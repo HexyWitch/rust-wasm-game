@@ -1,8 +1,8 @@
-use platform_web::webgl;
-use platform_web::webgl::types::*;
+use js::webgl;
+use js::webgl::types::*;
 
-use core::Image;
-use rendering::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
+use assets::Image;
+use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 struct GLVertexShader {
     handle: webgl::ShaderHandle,
@@ -119,9 +119,9 @@ impl Texture for WebGLTexture {
     }
 }
 
-pub struct GLRenderer();
+pub struct WebGLRenderer();
 
-impl Renderer for GLRenderer {
+impl Renderer for WebGLRenderer {
     type Texture = WebGLTexture;
     type Program = WebGLProgram;
     type VertexBuffer = webgl::BufferHandle; // (vertex array, vertex buffer)

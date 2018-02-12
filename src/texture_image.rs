@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use std::hash::Hasher;
 use std::collections::hash_map::DefaultHasher;
 
-use core::Image;
+use assets::Image;
 
 pub struct TextureImage {
     id: u64,

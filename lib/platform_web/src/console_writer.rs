@@ -1,12 +1,10 @@
-use std::mem;
 use std::io;
+use std::mem;
 use std::str;
 
-use super::js;
+use js;
 
-#[allow(dead_code)]
 pub struct ConsoleWriter(Vec<u8>);
-#[allow(dead_code)]
 impl ConsoleWriter {
     pub fn new() -> ConsoleWriter {
         ConsoleWriter(Vec::new())

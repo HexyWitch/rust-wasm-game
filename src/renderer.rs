@@ -1,8 +1,10 @@
 use std::rc::Rc;
 
-use rendering::{Program, Renderer, Texture, TextureAtlas, TextureImage, Uniform, Vertex,
-                VertexAttributeType};
-use vec2::Vec2;
+use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
+use math::Vec2;
+use texture_atlas::TextureAtlas;
+use texture_image::TextureImage;
+use render_interface::RenderInterface;
 
 static VERTEX_SHADER: &'static str = include_str!("../shaders/vertex.glsl");
 static FRAGMENT_SHADER: &'static str = include_str!("../shaders/fragment.glsl");
@@ -23,7 +25,7 @@ impl Vertex for TexturedVertex {
     }
 }
 
-pub struct SimpleRenderer<R: Renderer> {
+pub struct GameRenderer<R: Renderer> {
     program: R::Program,
     vertex_buffer: R::VertexBuffer,
     vertices: Vec<TexturedVertex>,
@@ -31,11 +33,11 @@ pub struct SimpleRenderer<R: Renderer> {
     texture: Rc<R::Texture>,
 }
 
-impl<R> SimpleRenderer<R>
+impl<R> GameRenderer<R>
 where
     R: Renderer,
 {
-    pub fn new(screen_size: (f32, f32)) -> Result<SimpleRenderer<R>, String>
+    pub fn new(screen_size: (f32, f32)) -> Result<GameRenderer<R>, String>
     where
         R: Renderer,
     {
@@ -52,7 +54,7 @@ where
         );
         program.set_uniform("texture", Uniform::Texture(texture.clone()));
 
-        Ok(SimpleRenderer::<R> {
+        Ok(GameRenderer::<R> {
             program: program,
             vertex_buffer: R::create_vertex_buffer()?,
             vertices: Vec::new(),
@@ -125,5 +127,20 @@ where
         self.vertices.clear();
 
         Ok(())
+    }
+}
+
+impl<R> RenderInterface for GameRenderer<R>
+where
+    R: Renderer,
+{
+    fn draw_texture(
+        &mut self,
+        texture: &TextureImage,
+        position: Vec2,
+        scale: f32,
+        rotation: f32,
+    ) -> Result<(), String> {
+        self.draw_texture(texture, position, scale, rotation)
     }
 }

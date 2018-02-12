@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use core::Image;
+use assets::Image;
 
 #[derive(Clone, Copy)]
 pub enum VertexAttributeType {

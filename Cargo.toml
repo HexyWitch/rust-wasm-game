@@ -1,11 +1,22 @@
 [package]
-name = "rust-wasm-game"
+name = "game"
 version = "0.1.0"
 authors = ["William Lundstedt <bananavice@gmail.com>"]
 
 [workspace]
 members = [
-    "./server/"
+    "./lib/js/",
+    "./lib/platform/",
+    "./lib/platform_web/",
+    "./bin/",
 ]
 
 [dependencies]
+js = { path = "./lib/js/" }
+platform = { path = "./lib/platform/" }
+assets = { path = "./lib/assets/" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+platform_web = { path = "./lib/platform_web/" }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+platform_native = { path = "./lib/platform_native/" }
