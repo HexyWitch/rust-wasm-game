@@ -3,13 +3,18 @@ extern crate gl;
 extern crate platform;
 extern crate sdl2;
 
+mod input;
 pub mod renderer_gl;
 
 use std::thread;
 use std::time::Duration;
 use sdl2::video::GLProfile;
+use sdl2::event::Event;
 
 use platform::Application;
+use platform::input::InputEvent;
+
+use input::{to_key, to_mouse_button};
 
 pub fn run<T: Application + 'static>() {
     let sdl_context = sdl2::init().unwrap();
@@ -35,13 +40,39 @@ pub fn run<T: Application + 'static>() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut application = T::new();
     'main: loop {
+        let mut input_events = Vec::new();
         for event in event_pump.poll_iter() {
             match event {
+                Event::MouseMotion { x, y, .. } => {
+                    input_events.push(InputEvent::MouseMove(x, y));
+                }
+                Event::MouseButtonDown {
+                    mouse_btn, x, y, ..
+                } => {
+                    input_events.push(InputEvent::MouseDown {
+                        button: to_mouse_button(mouse_btn),
+                        position: (x, y),
+                    });
+                }
+                Event::MouseButtonUp {
+                    mouse_btn, x, y, ..
+                } => {
+                    input_events.push(InputEvent::MouseUp {
+                        button: to_mouse_button(mouse_btn),
+                        position: (x, y),
+                    });
+                }
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => input_events.push(InputEvent::KeyDown(to_key(key))),
+                Event::KeyUp {
+                    keycode: Some(key), ..
+                } => input_events.push(InputEvent::KeyUp(to_key(key))),
                 _ => {}
             }
         }
 
-        application.update(0.016);
+        application.update(0.016, &input_events);
 
         window.gl_swap_window();
         thread::sleep(Duration::from_millis(16));

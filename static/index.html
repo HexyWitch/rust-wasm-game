@@ -127,9 +127,86 @@
                     console.log(str);
                 },
                 js_set_main_loop: function (fn_ptr) {
+                    var mouse_move;
+                    var input_events = [];
+
+                    window.addEventListener("mousemove", function (event) {
+                        var window_rect = document.getElementById("window").getBoundingClientRect()
+                        mouse_move = {
+                            type: 0,
+                            x: event.pageX - window_rect.left,
+                            y: event.pageY - window_rect.bottom
+                        };
+                    });
+                    window.addEventListener("mousedown", function (event) {
+                        console.log(event);
+                        var window_rect = document.getElementById("window").getBoundingClientRect()
+                        input_events.push({
+                            type: 1,
+                            button: event.button,
+                            x: event.pageX - window_rect.left,
+                            y: event.pageY - window_rect.bottom
+                        });
+                    });
+                    window.addEventListener("mouseup", function (event) {
+                        var window_rect = document.getElementById("window").getBoundingClientRect()
+                        input_events.push({
+                            type: 2,
+                            button: event.button,
+                            x: event.pageX - window_rect.left,
+                            y: event.pageY - window_rect.bottom
+                        });
+                    });
+                    window.addEventListener("keydown", function (event) {
+                        input_events.push({
+                            type: 3,
+                            key: event.keyCode
+                        });
+                    });
+                    window.addEventListener("keyup", function (event) {
+                        input_events.push({
+                            type: 4,
+                            key: event.keyCode
+                        });
+                    });
+
                     var f = Module.instance.exports.__web_table.get(fn_ptr);
                     function runner() {
-                        f();
+                        if (mouse_move) {
+                            input_events.push(mouse_move);
+                            mouse_move = null;
+                        }
+
+                        var event_size = 12;
+                        var event_count = input_events.length;
+
+                        var start_ptr = Module.alloc(event_size * event_count);
+                        var event_ptr = start_ptr;
+                        input_events.forEach(function (e) {
+                            HEAP8[event_ptr] = e.type; // enum type
+
+                            // Mouse down and up, write mouse button
+                            if (e.type == 1 || e.type == 2) {
+                                HEAP8[event_ptr + 1] = e.button;
+                            }
+                            // Mouse event, write position
+                            if (e.type == 0 || e.type == 1 || e.type == 2) {
+                                var pos_ptr = (event_ptr / 4) + 1; // mouse position
+                                HEAP32[pos_ptr] = e.x;
+                                HEAP32[pos_ptr + 1] = -e.y; // Flip y coordinate
+                            }
+                            // Key event, write key code
+                            if (e.type == 3 || e.type == 4) {
+                                var key_ptr = (event_ptr / 4) + 1;
+                                HEAP32[key_ptr] = e.key;
+                            }
+                            event_ptr += event_size;
+                        });
+                        input_events = [];
+
+                        f(start_ptr, event_count);
+                        Module.dealloc(start_ptr, event_size * event_count);
+
                         window.requestAnimationFrame(runner);
                     }
                     window.requestAnimationFrame(runner);
@@ -142,9 +219,10 @@
         window.addEventListener("load", function (event) {
             fetchAndInstantiate("client-web.wasm", imports)
                 .then(mod => {
+                    Module.alloc = mod.exports.alloc;
+                    Module.dealloc = mod.exports.dealloc;
                     Module.alloc_str = mod.exports.alloc_str;
                     Module.dealloc_str = mod.exports.dealloc_str;
-                    Module.memory = imports.env.memory;
                     Module.instance = mod;
 
                     Module.HEAP8 = HEAP8;
@@ -158,15 +236,18 @@
 
                     console.log("Open webgl context")
                     gl.context = document.getElementById("window").getContext('webgl');
+
                     try {
                         mod.exports.__web_main()
                     } catch (e) {
                         if (e == "SimulateInfiniteLoop") {
-                            return
+                            // do nothing
                         } else {
                             throw e;
                         }
                     }
+
+                    return
                 });
         });
     </script>

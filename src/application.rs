@@ -1,5 +1,6 @@
 use platform::rendering_api::Renderer;
 use platform::Application;
+use platform::input::InputEvent;
 
 use renderer::GameRenderer;
 use game::Game;
@@ -21,7 +22,11 @@ where
         }
     }
 
-    fn update(&mut self, dt: f64) {
+    fn update(&mut self, dt: f64, input_events: &[InputEvent]) {
+        for e in input_events {
+            println!("Input event: {:?}", e);
+        }
+
         self.game.update(dt);
 
         self.game.render(&mut self.renderer);
