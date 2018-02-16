@@ -135,7 +135,7 @@
                         mouse_move = {
                             type: 0,
                             x: event.pageX - window_rect.left,
-                            y: event.pageY - window_rect.bottom
+                            y: event.pageY - window_rect.top
                         };
                     });
                     window.addEventListener("mousedown", function (event) {
@@ -145,7 +145,7 @@
                             type: 1,
                             button: event.button,
                             x: event.pageX - window_rect.left,
-                            y: event.pageY - window_rect.bottom
+                            y: event.pageY - window_rect.top
                         });
                     });
                     window.addEventListener("mouseup", function (event) {
@@ -154,7 +154,7 @@
                             type: 2,
                             button: event.button,
                             x: event.pageX - window_rect.left,
-                            y: event.pageY - window_rect.bottom
+                            y: event.pageY - window_rect.top
                         });
                     });
                     window.addEventListener("keydown", function (event) {
@@ -193,7 +193,7 @@
                             if (e.type == 0 || e.type == 1 || e.type == 2) {
                                 var pos_ptr = (event_ptr / 4) + 1; // mouse position
                                 HEAP32[pos_ptr] = e.x;
-                                HEAP32[pos_ptr + 1] = -e.y; // Flip y coordinate
+                                HEAP32[pos_ptr + 1] = e.y;
                             }
                             // Key event, write key code
                             if (e.type == 3 || e.type == 4) {
