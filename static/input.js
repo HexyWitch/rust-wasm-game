@@ -1,3 +1,113 @@
+// Takes a struct data format descriptor in the form of:
+// properties: {
+//     type_id: {
+//         type: "u8",
+//         offset: 0
+//     },
+//     x: {
+//         type: "i32",
+//         offset: 4
+//     }
+// }
+// Where type is specified in raw_types and offset is in bytes regardless of the type
+class StructFormat {
+    constructor(format) {
+        this.format = format
+
+        this.size = 0;
+        for (var k in format) {
+            var v = format[k];
+            var size;
+            switch (v.type) {
+                case "i8": size = 1; break
+                case "i16": size = 2; break
+                case "i32": size = 4; break
+                case "u8": size = 1; break
+                case "u16": size = 2; break
+                case "u32": size = 4; break
+                case "f32": size = 4; break
+                case "f64": size = 8; break
+            }
+            this.size = Math.max(this.size, v.offset + size);
+        }
+    }
+
+    value(data) {
+        var size = this.size;
+        var writer = this;
+        return {
+            size: function () {
+                return size
+            },
+            write: function (ptr) {
+                writer.write(ptr, data)
+            }
+        }
+    }
+
+    write(ptr, data) {
+        for (var k in this.format) {
+            var v = this.format[k];
+            let property_ptr = (ptr + v.offset);
+            switch (v.type) {
+                case "i8": HEAP8[property_ptr] = data[k]; break
+                case "i16": HEAP16[property_ptr / 2] = data[k]; break
+                case "i32": HEAP32[property_ptr / 4] = data[k]; break
+                case "u8": HEAPU8[property_ptr] = data[k]; break
+                case "u16": HEAPU16[property_ptr / 2] = data[k]; break
+                case "u32": HEAPU32[property_ptr / 4] = data[k]; break
+                case "f32": HEAPF32[property_ptr / 4] = data[k]; break
+                case "f64": HEAPF64[property_ptr / 8] = data[k]; break
+            }
+        }
+    }
+}
+
+var MouseMoveFormat = new StructFormat({
+    type_id: {
+        type: "u8",
+        offset: 0
+    },
+    x: {
+        type: "i32",
+        offset: 4
+    },
+    y: {
+        type: "i32",
+        offset: 8
+    }
+});
+
+var MouseButtonFormat = new StructFormat({
+    type_id: {
+        type: "u8",
+        offset: 0
+    },
+    button: {
+        type: "i8",
+        offset: 1
+    },
+    x: {
+        type: "i32",
+        offset: 4
+    },
+    y: {
+        type: "i32",
+        offset: 8
+    }
+});
+
+var KeyFormat = new StructFormat({
+    type_id: {
+        type: "u8",
+        offset: 0,
+    },
+    key: {
+        type: "i32",
+        offset: 4,
+    }
+});
+
 const input_buffer = {
     events: [],
     mouse_moved: false,
@@ -7,50 +117,54 @@ const input_buffer = {
         return input_buffer.events.length;
     },
     size: function () {
-        return input_buffer.event_size * input_buffer.events.length;
+        var sum = 0;
+        input_buffer.events.forEach(function (v) {
+            sum += v.size();
+        });
+        return sum;
     },
     set_hooks: function () {
         window.addEventListener("mousemove", function (event) {
             if (!input_buffer.mouse_moved) {
                 var window_rect = document.getElementById("window").getBoundingClientRect()
-                input_buffer.events.push({
-                    type: 0,
+                input_buffer.events.push(MouseMoveFormat.value({
+                    type_id: 0,
                     x: event.pageX - window_rect.left,
                     y: event.pageY - window_rect.top
-                });
+                }));
                 input_buffer.mouse_moved = true;
             }
         });
         window.addEventListener("mousedown", function (event) {
-            console.log(event);
             var window_rect = document.getElementById("window").getBoundingClientRect()
-            input_buffer.events.push({
-                type: 1,
+            input_buffer.events.push(MouseButtonFormat.value({
+                type_id: 1,
                 button: event.button,
                 x: event.pageX - window_rect.left,
                 y: event.pageY - window_rect.top
-            });
+            }));
         });
         window.addEventListener("mouseup", function (event) {
             var window_rect = document.getElementById("window").getBoundingClientRect()
-            input_buffer.events.push({
-                type: 2,
+            input_buffer.events.push(MouseButtonFormat.value({
+                type_id: 2,
                 button: event.button,
                 x: event.pageX - window_rect.left,
                 y: event.pageY - window_rect.top
-            });
+            }));
         });
         window.addEventListener("keydown", function (event) {
-            input_buffer.events.push({
-                type: 3,
+            input_buffer.events.push(KeyFormat.value({
+                type_id: 3,
                 key: event.keyCode
-            });
+            }));
         });
         window.addEventListener("keyup", function (event) {
-            input_buffer.events.push({
-                type: 4,
+            input_buffer.events.push(KeyFormat.value({
+                base_format: KeyFormat,
+                type_id: 4,
                 key: event.keyCode
-            });
+            }));
         });
     },
     clear: function () {
@@ -61,24 +175,8 @@ const input_buffer = {
     write: function (start_ptr) {
         var event_ptr = start_ptr;
         input_buffer.events.forEach(function (e) {
-            HEAP8[event_ptr] = e.type; // enum type
-
-            // Mouse down and up, write mouse button
-            if (e.type == 1 || e.type == 2) {
-                HEAP8[event_ptr + 1] = e.button;
-            }
-            // Mouse event, write position
-            if (e.type == 0 || e.type == 1 || e.type == 2) {
-                var pos_ptr = (event_ptr / 4) + 1; // mouse position
-                HEAP32[pos_ptr] = e.x;
-                HEAP32[pos_ptr + 1] = e.y;
-            }
-            // Key event, write key code
-            if (e.type == 3 || e.type == 4) {
-                var key_ptr = (event_ptr / 4) + 1;
-                HEAP32[key_ptr] = e.key;
-            }
-            event_ptr += input_buffer.event_size;
+            e.write(event_ptr);
+            event_ptr += e.size();
         });
     }
 }
