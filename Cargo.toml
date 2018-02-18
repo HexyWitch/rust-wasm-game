@@ -12,6 +12,7 @@ members = [
 ]
 
 [dependencies]
+png = "*"
 platform = { path = "./lib/platform/" }
 assets = { path = "./lib/assets/" }
 js = { path = "./lib/js/", optional = true }
