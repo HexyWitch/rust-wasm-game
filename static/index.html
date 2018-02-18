@@ -56,9 +56,9 @@
                 response.arrayBuffer()
             ).then(bytes =>
                 WebAssembly.instantiate(bytes, importObject)
-                ).then(results =>
-                    results.instance
-                );
+            ).then(results =>
+                results.instance
+            );
         }
 
         const imports = {
@@ -173,7 +173,7 @@
                     gl.context = document.getElementById("window").getContext('webgl');
 
                     try {
-                        mod.exports.__web_main()
+                        mod.exports.main()
                     } catch (e) {
                         if (e == "SimulateInfiniteLoop") {
                             // do nothing
