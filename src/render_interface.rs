@@ -1,3 +1,5 @@
+use failure::Error;
+
 use texture_image::TextureImage;
 use math::Vec2;
 
@@ -8,5 +10,5 @@ pub trait RenderInterface {
         position: Vec2,
         scale: f32,
         rotation: f32,
-    ) -> Result<(), String>;
+    ) -> Result<(), Error>;
 }

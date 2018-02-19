@@ -1,3 +1,5 @@
+use failure::Error;
+
 use js::webgl;
 use js::webgl::types::*;
 
@@ -9,7 +11,7 @@ struct GLVertexShader {
 }
 
 impl GLVertexShader {
-    fn new(src: &str) -> Result<GLVertexShader, String> {
+    fn new(src: &str) -> Result<GLVertexShader, Error> {
         Ok(GLVertexShader {
             handle: compile_shader(src, webgl::VERTEX_SHADER)?,
         })
@@ -24,7 +26,7 @@ struct GLFragmentShader {
 }
 
 impl GLFragmentShader {
-    fn new(src: &str) -> Result<GLFragmentShader, String> {
+    fn new(src: &str) -> Result<GLFragmentShader, Error> {
         Ok(GLFragmentShader {
             handle: compile_shader(src, webgl::FRAGMENT_SHADER)?,
         })
@@ -45,7 +47,7 @@ impl WebGLProgram {
     fn new(
         vertex_shader: GLVertexShader,
         frag_shader: GLFragmentShader,
-    ) -> Result<WebGLProgram, String> {
+    ) -> Result<WebGLProgram, Error> {
         Ok(WebGLProgram {
             uniforms: Vec::new(),
             handle: link_program(vertex_shader.handle(), frag_shader.handle())?,
@@ -126,18 +128,18 @@ impl Renderer for WebGLRenderer {
     type Program = WebGLProgram;
     type VertexBuffer = webgl::BufferHandle; // (vertex array, vertex buffer)
 
-    fn create_vertex_buffer() -> Result<Self::VertexBuffer, String> {
+    fn create_vertex_buffer() -> Result<Self::VertexBuffer, Error> {
         let vbo = webgl::create_buffer();
 
         Ok(vbo)
     }
-    fn create_program(vs: &str, fs: &str) -> Result<WebGLProgram, String> {
+    fn create_program(vs: &str, fs: &str) -> Result<WebGLProgram, Error> {
         let vs = GLVertexShader::new(vs)?;
         let fs = GLFragmentShader::new(fs)?;
 
         Ok(WebGLProgram::new(vs, fs)?)
     }
-    fn create_texture(size: (u32, u32)) -> Result<WebGLTexture, String> {
+    fn create_texture(size: (u32, u32)) -> Result<WebGLTexture, Error> {
         Ok(WebGLTexture::new(size))
     }
 
@@ -145,7 +147,7 @@ impl Renderer for WebGLRenderer {
         vertex_buffer: &Self::VertexBuffer,
         program: &Self::Program,
         vertices: &Vec<V>,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         webgl::blend_func(webgl::SRC_ALPHA, webgl::ONE_MINUS_SRC_ALPHA);
         webgl::enable(webgl::BLEND);
 
@@ -220,7 +222,7 @@ impl Renderer for WebGLRenderer {
     }
 }
 
-fn compile_shader(src: &str, t: GLenum) -> Result<webgl::ShaderHandle, String> {
+fn compile_shader(src: &str, t: GLenum) -> Result<webgl::ShaderHandle, Error> {
     let shader;
     shader = webgl::create_shader(t);
     webgl::shader_source(&shader, src);
@@ -229,7 +231,7 @@ fn compile_shader(src: &str, t: GLenum) -> Result<webgl::ShaderHandle, String> {
     let status = webgl::get_shader_parameter(&shader, webgl::COMPILE_STATUS);
     if status != (webgl::TRUE as GLint) {
         let log = webgl::get_shader_info_log(&shader);
-        return Err(format!("Error compiling shader: {}", log));
+        return Err(format_err!("Error compiling shader: {}", log));
     }
     Ok(shader)
 }
@@ -237,7 +239,7 @@ fn compile_shader(src: &str, t: GLenum) -> Result<webgl::ShaderHandle, String> {
 fn link_program(
     vs: &webgl::ShaderHandle,
     fs: &webgl::ShaderHandle,
-) -> Result<webgl::ProgramHandle, String> {
+) -> Result<webgl::ProgramHandle, Error> {
     let program = webgl::create_program();
     webgl::attach_shader(&program, vs);
     webgl::attach_shader(&program, fs);
@@ -246,7 +248,7 @@ fn link_program(
     let status = webgl::get_program_parameter(&program, webgl::LINK_STATUS);
     if status != (webgl::TRUE as GLint) {
         let log = webgl::get_program_info_log(&program);
-        return Err(format!("Error linking program: {}", log));
+        return Err(format_err!("Error linking program: {}", log));
     }
     Ok(program)
 }

@@ -6,6 +6,8 @@ use std::ptr;
 use std::mem;
 use std::os::raw::c_void;
 
+use failure::Error;
+
 use assets::Image;
 use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
@@ -14,7 +16,7 @@ struct GLVertexShader {
 }
 
 impl GLVertexShader {
-    fn new(src: &str) -> Result<GLVertexShader, String> {
+    fn new(src: &str) -> Result<GLVertexShader, Error> {
         Ok(GLVertexShader {
             gl_ref: compile_shader(src, gl::VERTEX_SHADER)?,
         })
@@ -29,7 +31,7 @@ struct GLFragmentShader {
 }
 
 impl GLFragmentShader {
-    fn new(src: &str) -> Result<GLFragmentShader, String> {
+    fn new(src: &str) -> Result<GLFragmentShader, Error> {
         Ok(GLFragmentShader {
             gl_ref: compile_shader(src, gl::FRAGMENT_SHADER)?,
         })
@@ -50,7 +52,7 @@ impl GLProgram {
     fn new(
         vertex_shader: GLVertexShader,
         frag_shader: GLFragmentShader,
-    ) -> Result<GLProgram, String> {
+    ) -> Result<GLProgram, Error> {
         Ok(GLProgram {
             uniforms: Vec::new(),
             gl_ref: link_program(vertex_shader.gl_ref(), frag_shader.gl_ref())?,
@@ -128,7 +130,7 @@ impl Renderer for GLRenderer {
     type Program = GLProgram;
     type VertexBuffer = (GLuint, GLuint); // (vertex array, vertex buffer)
 
-    fn create_vertex_buffer() -> Result<(GLuint, GLuint), String> {
+    fn create_vertex_buffer() -> Result<(GLuint, GLuint), Error> {
         let mut vao = 0;
         let mut vbo = 0;
 
@@ -139,13 +141,13 @@ impl Renderer for GLRenderer {
 
         Ok((vao, vbo))
     }
-    fn create_program(vs: &str, fs: &str) -> Result<GLProgram, String> {
+    fn create_program(vs: &str, fs: &str) -> Result<GLProgram, Error> {
         let vs = GLVertexShader::new(vs)?;
         let fs = GLFragmentShader::new(fs)?;
 
         Ok(GLProgram::new(vs, fs)?)
     }
-    fn create_texture(size: (u32, u32)) -> Result<GLTexture, String> {
+    fn create_texture(size: (u32, u32)) -> Result<GLTexture, Error> {
         Ok(GLTexture::new(size))
     }
 
@@ -153,7 +155,7 @@ impl Renderer for GLRenderer {
         vertex_buffer: &(GLuint, GLuint),
         program: &GLProgram,
         vertices: &Vec<V>,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         unsafe {
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::Enable(gl::BLEND);
@@ -241,7 +243,7 @@ impl Renderer for GLRenderer {
     }
 }
 
-fn compile_shader(src: &str, t: GLenum) -> Result<GLuint, String> {
+fn compile_shader(src: &str, t: GLenum) -> Result<GLuint, Error> {
     let shader;
     unsafe {
         shader = gl::CreateShader(t);
@@ -261,7 +263,7 @@ fn compile_shader(src: &str, t: GLenum) -> Result<GLuint, String> {
                 ptr::null_mut(),
                 log_buffer.as_mut_ptr() as *mut GLchar,
             );
-            return Err(format!(
+            return Err(format_err!(
                 "Error compiling shader: {}",
                 std::str::from_utf8(log_buffer.as_slice())
                     .expect("Shader Info Log not in utf8 format")
@@ -271,7 +273,7 @@ fn compile_shader(src: &str, t: GLenum) -> Result<GLuint, String> {
     Ok(shader)
 }
 
-fn link_program(vs: GLuint, fs: GLuint) -> Result<GLuint, String> {
+fn link_program(vs: GLuint, fs: GLuint) -> Result<GLuint, Error> {
     let program;
     unsafe {
         program = gl::CreateProgram();
@@ -292,7 +294,7 @@ fn link_program(vs: GLuint, fs: GLuint) -> Result<GLuint, String> {
                 ptr::null_mut(),
                 log_buffer.as_mut_ptr() as *mut GLchar,
             );
-            return Err(format!(
+            return Err(format_err!(
                 "Error linking program: {}",
                 std::str::from_utf8(log_buffer.as_slice())
                     .expect("Program Info Log not in utf8 format")

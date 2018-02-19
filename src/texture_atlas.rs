@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use failure::Error;
 
 use super::texture_image::TextureImage;
 
@@ -16,7 +17,7 @@ impl TextureAtlas {
     pub fn get_texture_block(&mut self, texture: &TextureImage) -> Option<[u32; 4]> {
         self.texture_blocks.get(&texture.id()).map(|r| *r)
     }
-    pub fn add_texture(&mut self, texture: &TextureImage) -> Result<[u32; 4], String> {
+    pub fn add_texture(&mut self, texture: &TextureImage) -> Result<[u32; 4], Error> {
         let pad = |rect: [u32; 4]| [rect[0] - 1, rect[1] - 1, rect[2] + 1, rect[3] + 1];
         let unpad = |rect: [u32; 4]| [rect[0] + 1, rect[1] + 1, rect[2] - 1, rect[3] - 1];
         let size = (texture.width(), texture.height());
@@ -59,7 +60,7 @@ impl TextureAtlas {
                 self.texture_blocks.insert(texture.id(), coords);
                 Ok(coords)
             }
-            None => Err(String::from("Texture atlas overflow")),
+            None => Err(format_err!("Texture atlas overflow")),
         }
     }
 }

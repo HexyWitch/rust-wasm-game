@@ -5,6 +5,7 @@ pub mod constants;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
+use failure::Error;
 
 pub use self::constants::*;
 use self::types::*;
@@ -325,11 +326,11 @@ pub unsafe fn buffer_data(target: GLenum, size: GLsizei, data: *const u8, usage:
     js_gl_buffer_data(target, size, data, usage);
 }
 
-pub fn get_attrib_location(program: &ProgramHandle, name: &str) -> Result<AttribIndex, String> {
+pub fn get_attrib_location(program: &ProgramHandle, name: &str) -> Result<AttribIndex, Error> {
     let c_str = CString::new(name).expect("attrib location name not UTF-8");
     let location = unsafe { js_gl_get_attrib_location(program.0, c_str.as_ptr()) };
     if location < 0 {
-        Err(format!("Attribute '{}' could not be found", name))
+        Err(format_err!("Attribute '{}' could not be found", name))
     } else {
         Ok(location as AttribIndex)
     }

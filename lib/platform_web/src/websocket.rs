@@ -22,7 +22,7 @@ impl Drop for JsWebSocket {
 }
 
 impl WebSocket for JsWebSocket {
-    fn connect(url: &str) -> Result<Self, ()> {
+    fn connect(url: &str) -> Result<Self, Error> {
         let handle = websocket::websocket_create(url);
 
         let open = Rc::new(RefCell::new(false));
@@ -55,7 +55,7 @@ impl WebSocket for JsWebSocket {
         *self.open.borrow()
     }
 
-    fn send(&self, msg: &str) -> Result<(), ()> {
+    fn send(&self, msg: &str) -> Result<(), Error> {
         websocket::websocket_send(self.handle, msg);
         Ok(())
     }

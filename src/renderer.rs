@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use failure::Error;
 
 use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 use math::Vec2;
@@ -37,7 +38,7 @@ impl<R> GameRenderer<R>
 where
     R: Renderer,
 {
-    pub fn new(screen_size: (f32, f32)) -> Result<GameRenderer<R>, String>
+    pub fn new(screen_size: (f32, f32)) -> Result<GameRenderer<R>, Error>
     where
         R: Renderer,
     {
@@ -69,7 +70,7 @@ where
         position: Vec2,
         scale: f32,
         rotation: f32,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         let tex_region = match self.atlas.get_texture_block(texture) {
             Some(region) => region,
             None => {
@@ -119,7 +120,7 @@ where
         Ok(())
     }
 
-    pub fn do_render(&mut self) -> Result<(), String> {
+    pub fn do_render(&mut self) -> Result<(), Error> {
         R::clear(Some((0.0, 0.0, 0.0, 1.0)));
 
         R::render_vertices(&self.vertex_buffer, &self.program, &self.vertices)?;
@@ -140,7 +141,7 @@ where
         position: Vec2,
         scale: f32,
         rotation: f32,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         self.draw_texture(texture, position, scale, rotation)
     }
 }

@@ -5,6 +5,7 @@ version = "0.1.0"
 [dependencies]
 gl = "*"
 sdl2 = "*"
+failure = "*"
 
 assets = { path = "../assets/" }
 platform = { path = "../platform/" }

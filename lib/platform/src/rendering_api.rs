@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use failure::Error;
+
 use assets::Image;
 
 #[derive(Clone, Copy)]
@@ -45,14 +47,14 @@ pub trait Renderer {
     type Program: Program<Self::Texture>;
     type VertexBuffer;
 
-    fn create_vertex_buffer() -> Result<Self::VertexBuffer, String>;
-    fn create_program(vs: &str, fs: &str) -> Result<Self::Program, String>;
-    fn create_texture(size: (u32, u32)) -> Result<Self::Texture, String>;
+    fn create_vertex_buffer() -> Result<Self::VertexBuffer, Error>;
+    fn create_program(vs: &str, fs: &str) -> Result<Self::Program, Error>;
+    fn create_texture(size: (u32, u32)) -> Result<Self::Texture, Error>;
 
     fn render_vertices<V: Vertex>(
         vertex_buffer: &Self::VertexBuffer,
         program: &Self::Program,
         vertices: &Vec<V>,
-    ) -> Result<(), String>;
+    ) -> Result<(), Error>;
     fn clear(color: Option<(f32, f32, f32, f32)>);
 }

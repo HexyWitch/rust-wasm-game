@@ -12,6 +12,7 @@ members = [
 ]
 
 [dependencies]
+failure = "*"
 png = "*"
 platform = { path = "./lib/platform/" }
 assets = { path = "./lib/assets/" }

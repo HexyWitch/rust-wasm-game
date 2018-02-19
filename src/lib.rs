@@ -1,4 +1,6 @@
 extern crate assets;
+#[macro_use]
+extern crate failure;
 extern crate platform;
 extern crate png;
 

@@ -2,6 +2,7 @@ use std::rc::Rc;
 use std::f32;
 
 use png;
+use failure::Error;
 
 use platform::input::{InputEvent, Key};
 use assets::Image;
@@ -26,18 +27,18 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new() -> Game {
+    pub fn new() -> Result<Game, Error> {
         let decoder = png::Decoder::new(SHIP_IMAGE);
-        let (info, mut reader) = decoder.read_info().unwrap();
+        let (info, mut reader) = decoder.read_info()?;
         let mut buf = vec![0; info.buffer_size()];
-        reader.next_frame(&mut buf).unwrap();
+        reader.next_frame(&mut buf)?;
         let ship_image = Rc::new(Image {
             data: buf,
             width: info.width,
             height: info.height,
         });
 
-        Game {
+        Ok(Game {
             input: PlayerInput {
                 left: false,
                 right: false,
@@ -46,7 +47,7 @@ impl Game {
             ship_texture: TextureImage::new(ship_image),
             ship_position: Vec2(320.0, 240.0),
             ship_angle: 0.0,
-        }
+        })
     }
 
     pub fn update(&mut self, dt: f64, input_events: &[InputEvent]) {
@@ -88,9 +89,9 @@ impl Game {
         }
     }
 
-    pub fn render(&self, renderer: &mut RenderInterface) {
-        renderer
-            .draw_texture(&self.ship_texture, self.ship_position, 4.0, self.ship_angle)
-            .unwrap();
+    pub fn render(&self, renderer: &mut RenderInterface) -> Result<(), Error> {
+        renderer.draw_texture(&self.ship_texture, self.ship_position, 4.0, self.ship_angle)?;
+
+        Ok(())
     }
 }

@@ -1,4 +1,6 @@
 extern crate assets;
+#[macro_use]
+extern crate failure;
 extern crate gl;
 extern crate platform;
 extern crate sdl2;
@@ -44,7 +46,7 @@ pub fn run<T: Application + 'static>() {
     gl::load_with(|name| sdl_video.gl_get_proc_address(name) as *const _);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut application = T::new();
+    let mut application = T::new().unwrap();
     'main: loop {
         let mut input_events = Vec::new();
         for event in event_pump.poll_iter() {
@@ -78,7 +80,7 @@ pub fn run<T: Application + 'static>() {
             }
         }
 
-        application.update(0.016, &input_events);
+        application.update(0.016, &input_events).unwrap();
 
         window.gl_swap_window();
         thread::sleep(Duration::from_millis(16));

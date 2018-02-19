@@ -1,9 +1,11 @@
 use platform::websocket::{Message, WebSocket};
 
+use failure::Error;
+
 pub struct NativeWebSocket();
 
 impl WebSocket for NativeWebSocket {
-    fn connect(_: &str) -> Result<Self, ()> {
+    fn connect(_: &str) -> Result<Self, Error> {
         Ok(NativeWebSocket())
     }
 
@@ -11,7 +13,7 @@ impl WebSocket for NativeWebSocket {
         false
     }
 
-    fn send(&self, msg: &str) -> Result<(), ()> {
+    fn send(&self, msg: &str) -> Result<(), Error> {
         Ok(())
     }
 

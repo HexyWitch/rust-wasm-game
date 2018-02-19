@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate failure;
+
 pub mod webgl;
 pub mod websocket;
 pub mod exports;
