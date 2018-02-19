@@ -1,22 +1,30 @@
-#![feature(set_stdio)]
 extern crate assets;
 extern crate js;
 extern crate platform;
+
+#[cfg(feature = "set_stdio")]
+use std::io;
 
 mod input;
 mod console_writer;
 pub mod renderer_webgl;
 
-use std::io;
-
-use platform::Application;
+use platform::{Application, PlatformApi};
 use platform::input::InputEvent;
 use input::to_input_event;
 
 use self::console_writer::ConsoleWriter;
 
+pub struct WebPlatformApi();
+
+impl PlatformApi for WebPlatformApi {
+    type Renderer = renderer_webgl::WebGLRenderer;
+}
+
 pub fn run<T: Application + 'static>() {
+    #[cfg(feature = "set_stdio")]
     io::set_print(Some(Box::new(ConsoleWriter::new())));
+    #[cfg(feature = "set_stdio")]
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
     let mut application = T::new();

@@ -1,22 +1,21 @@
-use platform::rendering_api::Renderer;
-use platform::Application;
+use platform::{Application, PlatformApi};
 use platform::input::InputEvent;
 
 use renderer::GameRenderer;
 use game::Game;
 
-pub struct GameApplication<R: Renderer> {
-    renderer: GameRenderer<R>,
+pub struct GameApplication<A: PlatformApi> {
+    renderer: GameRenderer<A::Renderer>,
     game: Game,
 }
 
-impl<R> Application for GameApplication<R>
+impl<A> Application for GameApplication<A>
 where
-    R: Renderer,
+    A: PlatformApi,
 {
     fn new() -> Self {
         GameApplication {
-            renderer: GameRenderer::<R>::new((640.0, 480.0)).unwrap(),
+            renderer: GameRenderer::<A::Renderer>::new((640.0, 480.0)).unwrap(),
             game: Game::new(),
         }
     }

@@ -1,7 +1,16 @@
 extern crate assets;
 
-mod application;
 pub mod rendering_api;
 pub mod input;
 
-pub use application::Application;
+pub trait PlatformApi {
+    type Renderer: rendering_api::Renderer;
+}
+
+use input::InputEvent;
+pub trait Application {
+    type Platform: PlatformApi;
+
+    fn new() -> Self;
+    fn update(&mut self, dt: f64, input_events: &[InputEvent]);
+}

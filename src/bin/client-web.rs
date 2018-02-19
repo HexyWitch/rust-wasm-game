@@ -5,8 +5,8 @@ extern crate platform_web;
 pub use js::exports::*;
 
 use game::application::GameApplication;
-use platform_web::renderer_webgl::WebGLRenderer;
+use platform_web::WebPlatformApi;
 
 fn main() {
-    platform_web::run::<GameApplication<WebGLRenderer>>();
+    platform_web::run::<GameApplication<WebPlatformApi>>();
 }

@@ -11,10 +11,16 @@ use std::time::Duration;
 use sdl2::video::GLProfile;
 use sdl2::event::Event;
 
-use platform::Application;
+use platform::{Application, PlatformApi};
 use platform::input::InputEvent;
 
 use input::{to_key, to_mouse_button};
+
+pub struct NativePlatformApi();
+
+impl PlatformApi for NativePlatformApi {
+    type Renderer = renderer_gl::GLRenderer;
+}
 
 pub fn run<T: Application + 'static>() {
     let sdl_context = sdl2::init().unwrap();
