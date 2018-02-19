@@ -152,7 +152,7 @@
         };
 
         window.addEventListener("load", function (event) {
-            fetchAndInstantiate("client-web.wasm", imports)
+            fetchAndInstantiate("client.wasm", imports)
                 .then(mod => {
                     Module.alloc = mod.exports.alloc;
                     Module.dealloc = mod.exports.dealloc;

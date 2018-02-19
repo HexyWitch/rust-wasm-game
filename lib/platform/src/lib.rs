@@ -9,8 +9,6 @@ pub trait PlatformApi {
 
 use input::InputEvent;
 pub trait Application {
-    type Platform: PlatformApi;
-
     fn new() -> Self;
     fn update(&mut self, dt: f64, input_events: &[InputEvent]);
 }

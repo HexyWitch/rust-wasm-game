@@ -6,6 +6,7 @@ extern crate platform;
 use std::io;
 
 mod input;
+#[cfg(feature = "set_stdio")]
 mod console_writer;
 pub mod renderer_webgl;
 
@@ -13,6 +14,7 @@ use platform::{Application, PlatformApi};
 use platform::input::InputEvent;
 use input::to_input_event;
 
+#[cfg(feature = "set_stdio")]
 use self::console_writer::ConsoleWriter;
 
 pub struct WebPlatformApi();

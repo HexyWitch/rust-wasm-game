@@ -15,18 +15,10 @@ members = [
 png = "*"
 platform = { path = "./lib/platform/" }
 assets = { path = "./lib/assets/" }
-js = { path = "./lib/js/", optional = true }
-platform_web = { path = "./lib/platform_web/", optional = true }
-platform_native = { path = "./lib/platform_native/", optional = true }
 
-[features]
-build-web = ["js", "platform_web"]
-build-native = ["platform_native"]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js = { path = "./lib/js/" }
+platform_web = { path = "./lib/platform_web/" }
 
-[[bin]]         
-name = "client-native"    
-required-features = ["build-native"]
-
-[[bin]]
-name = "client-web"
-required-features = ["build-web"]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+platform_native = { path = "./lib/platform_native/" }
