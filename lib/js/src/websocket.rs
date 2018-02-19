@@ -1,8 +1,5 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::any::Any;
 
 type WebSocketOnmessageCallback = unsafe extern "C" fn(*const u8, *mut c_void);
 type WebSocketOnopenCallback = unsafe extern "C" fn(*mut c_void);
