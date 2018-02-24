@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use failure::Error;
 
-use assets::Image;
+use core::assets::Image;
 
 #[derive(Clone, Copy)]
 pub enum VertexAttributeType {

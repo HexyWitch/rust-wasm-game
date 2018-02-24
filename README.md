@@ -6,7 +6,7 @@ Experimenting with making a game running under the wasm32-unknown-unknown target
 Requires SDL2 development library.
 
 ```
-cargo run --bin client-native --features build-native
+cargo run --bin client-native --features native
 ```
 
 ## Running for web
@@ -18,5 +18,5 @@ The only currently supported target is wasm32-unknown-unknown, and requires the 
 To run start the client-web binary using cargo-web.
 
 ```
-$ cargo web start --bin client-web --features build-web --target=wasm32-unknown-unknown
+$ cargo web start --bin client-web --features web --target=wasm32-unknown-unknown
 ```

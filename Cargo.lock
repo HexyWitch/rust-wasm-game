@@ -4,10 +4,6 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "assets"
-version = "0.1.0"
-
-[[package]]
 name = "backtrace"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -52,6 +48,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "cfg-if"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "core"
+version = "0.1.0"
+dependencies = [
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "png 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "deflate"
@@ -99,7 +103,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "game"
 version = "0.1.0"
 dependencies = [
- "assets 0.1.0",
+ "core 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "js 0.1.0",
  "platform 0.1.0",
@@ -209,7 +213,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "platform"
 version = "0.1.0"
 dependencies = [
- "assets 0.1.0",
+ "core 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -217,7 +221,7 @@ dependencies = [
 name = "platform_native"
 version = "0.1.0"
 dependencies = [
- "assets 0.1.0",
+ "core 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "platform 0.1.0",
@@ -228,7 +232,7 @@ dependencies = [
 name = "platform_web"
 version = "0.1.0"
 dependencies = [
- "assets 0.1.0",
+ "core 0.1.0",
  "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "js 0.1.0",
  "platform 0.1.0",

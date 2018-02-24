@@ -37,18 +37,28 @@
             return buffer_as_utf8
         }
 
-        function newString(str) {
+        function pushData(data) {
+            let len = data.length;
+            let ptr = Module.alloc(len);
+            for (i = 0; i < len; i++) {
+                HEAPU8[ptr + i] = data[i];
+            }
+            return ptr
+        }
+
+        function withString(str, cb) {
             const utf8Encoder = new TextEncoder("UTF-8");
             let string_buffer = utf8Encoder.encode(str)
-            let len = string_buffer.length
-            let ptr = Module.alloc_str(len + 1)
-
+            let len = string_buffer.length;
+            let ptr = Module.alloc(len + 1);
             for (i = 0; i < len; i++) {
                 HEAPU8[ptr + i] = string_buffer[i]
             }
             HEAPU8[ptr + len] = 0;
 
-            return ptr;
+            cb(ptr, len);
+
+            Module.dealloc(str);
         }
 
         function fetchAndInstantiate(url, importObject) {
@@ -152,7 +162,7 @@
         };
 
         window.addEventListener("load", function (event) {
-            fetchAndInstantiate("client.wasm", imports)
+            fetchAndInstantiate("client-web.wasm", imports)
                 .then(mod => {
                     Module.alloc = mod.exports.alloc;
                     Module.dealloc = mod.exports.dealloc;

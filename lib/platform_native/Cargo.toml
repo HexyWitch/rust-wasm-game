@@ -7,5 +7,5 @@ gl = "*"
 sdl2 = "*"
 failure = "*"
 
-assets = { path = "../assets/" }
+core = { path = "../core/" }
 platform = { path = "../platform/" }

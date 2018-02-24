@@ -1,7 +1,8 @@
 use failure::Error;
 
+use core::math::Vec2;
+
 use texture_image::TextureImage;
-use math::Vec2;
 
 pub trait RenderInterface {
     fn draw_texture(

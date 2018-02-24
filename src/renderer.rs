@@ -2,7 +2,8 @@ use std::rc::Rc;
 use failure::Error;
 
 use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
-use math::Vec2;
+use core::math::Vec2;
+
 use texture_atlas::TextureAtlas;
 use texture_image::TextureImage;
 use render_interface::RenderInterface;

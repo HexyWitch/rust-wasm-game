@@ -1,40 +1,40 @@
-extern crate assets;
+#![feature(set_stdio)]
+extern crate core;
 #[macro_use]
 extern crate failure;
 extern crate js;
 extern crate platform;
 
-#[cfg(feature = "set_stdio")]
 use std::io;
 
 mod input;
-#[cfg(feature = "set_stdio")]
 mod console_writer;
+pub mod websocket;
 pub mod renderer_webgl;
 
 use platform::{Application, PlatformApi};
-use platform::input::InputEvent;
+use platform::input::{Input, InputEvent};
 use input::to_input_event;
 
-#[cfg(feature = "set_stdio")]
 use self::console_writer::ConsoleWriter;
 
 pub struct WebPlatformApi();
 
 impl PlatformApi for WebPlatformApi {
     type Renderer = renderer_webgl::WebGLRenderer;
+    type Socket = websocket::JsWebSocket;
 }
 
 pub fn run<T: Application + 'static>() {
-    #[cfg(feature = "set_stdio")]
     io::set_print(Some(Box::new(ConsoleWriter::new())));
-    #[cfg(feature = "set_stdio")]
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
     let mut application = T::new().unwrap();
+    let mut input = Input::new();
     js::set_main_loop_callback(move |input_events| {
         let input_events: Vec<InputEvent> = input_events.iter().map(to_input_event).collect();
+        input.update(&input_events);
 
-        application.update(0.016, &input_events).unwrap();
+        application.update(0.016, &input).unwrap();
     });
 }

@@ -1,4 +1,7 @@
-#[derive(Debug)]
+use std::collections::HashSet;
+use core::math::Vec2;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Key {
     Unknown,
     Backspace,
@@ -234,7 +237,7 @@ pub enum Key {
     Sleep,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MouseButton {
     Unknown,
     Left,
@@ -255,4 +258,89 @@ pub enum InputEvent {
     },
     KeyDown(Key),
     KeyUp(Key),
+}
+
+#[derive(Clone)]
+struct InputState {
+    pub keys_down: HashSet<Key>,
+    pub mouse_buttons_down: HashSet<MouseButton>,
+    pub mouse_position: Vec2,
+}
+
+impl InputState {
+    fn new() -> InputState {
+        InputState {
+            keys_down: HashSet::new(),
+            mouse_buttons_down: HashSet::new(),
+            mouse_position: Vec2::zero(),
+        }
+    }
+}
+
+pub struct Input {
+    last_state: InputState,
+    current_state: InputState,
+}
+
+impl Input {
+    pub fn new() -> Input {
+        Input {
+            last_state: InputState::new(),
+            current_state: InputState::new(),
+        }
+    }
+
+    pub fn update(&mut self, events: &[InputEvent]) {
+        self.last_state = self.current_state.clone();
+
+        for e in events {
+            match *e {
+                InputEvent::KeyDown(key) => {
+                    self.current_state.keys_down.insert(key);
+                }
+                InputEvent::KeyUp(key) => {
+                    self.current_state.keys_down.remove(&key);
+                }
+                InputEvent::MouseDown { button, .. } => {
+                    self.current_state.mouse_buttons_down.insert(button);
+                }
+                InputEvent::MouseUp { button, .. } => {
+                    self.current_state.mouse_buttons_down.remove(&button);
+                }
+                InputEvent::MouseMove(x, y) => {
+                    self.current_state.mouse_position = Vec2::new(x as f32, y as f32);
+                }
+            }
+        }
+    }
+
+    pub fn key_is_down(&self, key: &Key) -> bool {
+        self.current_state.keys_down.contains(key)
+    }
+
+    pub fn key_is_pressed(&self, key: &Key) -> bool {
+        !self.last_state.keys_down.contains(key) && self.current_state.keys_down.contains(key)
+    }
+
+    pub fn key_is_released(&self, key: &Key) -> bool {
+        self.last_state.keys_down.contains(key) && !self.current_state.keys_down.contains(key)
+    }
+
+    pub fn mouse_button_is_down(&self, button: &MouseButton) -> bool {
+        self.current_state.mouse_buttons_down.contains(button)
+    }
+
+    pub fn mouse_button_is_pressed(&self, button: &MouseButton) -> bool {
+        !self.last_state.mouse_buttons_down.contains(button)
+            && self.current_state.mouse_buttons_down.contains(button)
+    }
+
+    pub fn mouse_button_is_released(&self, button: &MouseButton) -> bool {
+        self.last_state.mouse_buttons_down.contains(button)
+            && !self.current_state.mouse_buttons_down.contains(button)
+    }
+
+    pub fn mouse_position(&self) -> Vec2 {
+        self.current_state.mouse_position
+    }
 }

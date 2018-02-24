@@ -1,4 +1,4 @@
-extern crate assets;
+extern crate core;
 #[macro_use]
 extern crate failure;
 extern crate gl;
@@ -6,6 +6,7 @@ extern crate platform;
 extern crate sdl2;
 
 mod input;
+pub mod websocket;
 pub mod renderer_gl;
 
 use std::thread;
@@ -14,7 +15,7 @@ use sdl2::video::GLProfile;
 use sdl2::event::Event;
 
 use platform::{Application, PlatformApi};
-use platform::input::InputEvent;
+use platform::input::{Input, InputEvent};
 
 use input::{to_key, to_mouse_button};
 
@@ -22,6 +23,7 @@ pub struct NativePlatformApi();
 
 impl PlatformApi for NativePlatformApi {
     type Renderer = renderer_gl::GLRenderer;
+    type Socket = websocket::NativeWebSocket;
 }
 
 pub fn run<T: Application + 'static>() {
@@ -47,6 +49,7 @@ pub fn run<T: Application + 'static>() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut application = T::new().unwrap();
+    let mut input = Input::new();
     'main: loop {
         let mut input_events = Vec::new();
         for event in event_pump.poll_iter() {
@@ -79,8 +82,9 @@ pub fn run<T: Application + 'static>() {
                 _ => {}
             }
         }
+        input.update(&input_events);
 
-        application.update(0.016, &input_events).unwrap();
+        application.update(0.016, &input).unwrap();
 
         window.gl_swap_window();
         thread::sleep(Duration::from_millis(16));

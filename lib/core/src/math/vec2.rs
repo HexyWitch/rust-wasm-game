@@ -6,6 +6,12 @@ pub struct Vec2(pub f32, pub f32);
 
 #[allow(dead_code)]
 impl Vec2 {
+    pub fn new(x: f32, y: f32) -> Vec2 {
+        Vec2(x, y)
+    }
+    pub fn zero() -> Vec2 {
+        Vec2(0.0, 0.0)
+    }
     pub fn with_angle(angle: f32) -> Vec2 {
         Vec2(angle.cos(), angle.sin())
     }

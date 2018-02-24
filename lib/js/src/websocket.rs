@@ -1,7 +1,7 @@
-use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_void};
+use std::ffi::{CString};
+use std::os::raw::{c_void};
 
-type WebSocketOnmessageCallback = unsafe extern "C" fn(*const u8, *mut c_void);
+type WebSocketOnmessageCallback = unsafe extern "C" fn(*const u8, usize, *mut c_void);
 type WebSocketOnopenCallback = unsafe extern "C" fn(*mut c_void);
 
 extern "C" {
@@ -63,15 +63,17 @@ where
 // sets a websocket's onmessage callback, returns a CallbackHandle which must live as long as the socket
 pub fn websocket_onmessage<T>(socket: SocketId, callback: T) -> CallbackHandle<T>
 where
-    T: Fn(&str) + 'static,
+    T: Fn(Vec<u8>) + 'static,
 {
-    pub unsafe extern "C" fn wrapper<T>(msg_ptr: *const u8, arg: *mut c_void)
+    pub unsafe extern "C" fn wrapper<T>(data_ptr: *const u8, data_len: usize, arg: *mut c_void)
     where
-        T: Fn(&str),
+        T: Fn(Vec<u8>),
     {
-        let msg = CStr::from_ptr(msg_ptr as *mut c_char);
+        // This relies on the memory being previously allocated using the exported alloc function
+        // which creates a Vec
+        let data = Vec::from_raw_parts(data_ptr as *mut u8, data_len, data_len);
         let callback = arg as *mut T;
-        (*callback)(msg.to_str().unwrap());
+        (*callback)(data);
     }
 
     let handle = CallbackHandle::new(callback);
@@ -81,9 +83,8 @@ where
     handle
 }
 
-pub fn websocket_send(handle: SocketId, msg: &str) {
-    let c_msg = CString::new(msg).unwrap();
-    unsafe { js_websocket_send(handle, c_msg.as_ptr() as *const u8) }
+pub fn websocket_send(handle: SocketId, data: &[u8]) {
+    unsafe { js_websocket_send(handle, data.as_ptr()) }
 }
 
 pub fn websocket_close(handle: SocketId, code: i32, reason: &str) {

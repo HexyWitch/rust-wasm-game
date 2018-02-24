@@ -3,7 +3,7 @@ use failure::Error;
 use js::webgl;
 use js::webgl::types::*;
 
-use assets::Image;
+use core::assets::Image;
 use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 struct GLVertexShader {
@@ -78,12 +78,12 @@ impl WebGLTexture {
         webgl::tex_parameter_i(
             webgl::TEXTURE_2D,
             webgl::TEXTURE_MIN_FILTER,
-            webgl::NEAREST as GLint,
+            webgl::LINEAR as GLint,
         );
         webgl::tex_parameter_i(
             webgl::TEXTURE_2D,
             webgl::TEXTURE_MAG_FILTER,
-            webgl::NEAREST as GLint,
+            webgl::LINEAR as GLint,
         );
 
         webgl::tex_image_2d(

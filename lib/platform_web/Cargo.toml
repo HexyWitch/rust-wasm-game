@@ -4,6 +4,6 @@ version = "0.1.0"
 
 [dependencies]
 failure = "*"
-assets = { path = "../assets/" }
+core = { path = "../core/" }
 js = { path = "../js/" }
 platform = { path = "../platform/" }

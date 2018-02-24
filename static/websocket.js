@@ -2,15 +2,15 @@ const sockets = [];
 
 function websocket_create(url_ptr) {
     let url_str = copyCStr(url_ptr);
-    var sock = new WebSocket(url_str);
+    var sock = new WebSocket(url_str, "rust-websocket");
     var len = sockets.push(sock);
     return len - 1;
 }
 
-function websocket_send(socket_id, data_ptr) {
-    let data_str = copyCStr(data_ptr);
+function websocket_send(socket_id, data_ptr, len) {
+    let data_view = new Uint8Array(Module.instance.exports.memory.buffer, data_ptr, len);
     let sock = sockets[socket_id];
-    sock.send(data_str);
+    sock.send(data_view);
 }
 
 function websocket_onopen(socket_id, fn_ptr, arg) {
@@ -32,8 +32,9 @@ function websocket_onmessage(socket_id, fn_ptr, arg) {
     var socket = sockets[socket_id];
     var f = Module.instance.exports.__web_table.get(fn_ptr)
     socket.onmessage = function (message) {
-        var message_ptr = newString(message.data);
-        f(message_ptr, arg);
-        Module.dealloc_str(message_ptr);
+        const utf8Encoder = new TextEncoder("UTF-8");
+        var buffer = utf8Encoder.encode(message.data);
+        var ptr = pushData(buffer);
+        f(ptr, buffer.length, arg);
     }
 }

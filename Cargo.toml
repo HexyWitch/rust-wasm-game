@@ -6,20 +6,31 @@ authors = ["William Lundstedt <bananavice@gmail.com>"]
 [workspace]
 members = [
     "./lib/js/",
+    "./lib/core/",
     "./lib/platform/",
     "./lib/platform_web/",
     "./bin/",
 ]
 
+[[bin]]
+name = "client-native"
+path = "src/bin/client-native.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "client-web"
+path = "src/bin/client-web.rs"
+required-features = ["web"]
+
 [dependencies]
 failure = "*"
 png = "*"
 platform = { path = "./lib/platform/" }
-assets = { path = "./lib/assets/" }
+core = { path = "./lib/core/" }
+js = { path = "./lib/js/", optional = true }
+platform_native = { path = "./lib/platform_native/", optional = true }
+platform_web = { path = "./lib/platform_web/", optional = true }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-js = { path = "./lib/js/" }
-platform_web = { path = "./lib/platform_web/" }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-platform_native = { path = "./lib/platform_native/" }
+[features]
+native = ["platform_native"]
+web = ["js", "platform_web"]

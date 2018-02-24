@@ -8,7 +8,7 @@ use std::os::raw::c_void;
 
 use failure::Error;
 
-use assets::Image;
+use core::assets::Image;
 use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 struct GLVertexShader {
@@ -82,8 +82,8 @@ impl GLTexture {
         unsafe {
             gl::GenTextures(1, &mut gl_ref);
             gl::BindTexture(gl::TEXTURE_2D, gl_ref);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
 
             gl::TexImage2D(
                 gl::TEXTURE_2D,

@@ -3,8 +3,9 @@ use std::borrow::Borrow;
 use std::hash::Hasher;
 use std::collections::hash_map::DefaultHasher;
 
-use assets::Image;
+use core::assets::Image;
 
+#[derive(Clone)]
 pub struct TextureImage {
     id: u64,
     width: u32,
