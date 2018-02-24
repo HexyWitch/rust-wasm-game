@@ -114,7 +114,7 @@ impl Texture for GLTexture {
                 offset.0 as GLint,
                 offset.1 as GLint,
                 image.width as GLint,
-                image.width as GLint,
+                image.height as GLint,
                 gl::RGBA,
                 gl::UNSIGNED_BYTE,
                 image.data.as_ptr() as *const _,

@@ -113,7 +113,7 @@ impl Texture for WebGLTexture {
             offset.0 as GLint,
             offset.1 as GLint,
             image.width as GLsizei,
-            image.width as GLsizei,
+            image.height as GLsizei,
             webgl::RGBA,
             webgl::UNSIGNED_BYTE,
             &image.data,

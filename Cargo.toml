@@ -22,9 +22,18 @@ name = "client-web"
 path = "src/bin/client-web.rs"
 required-features = ["web"]
 
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+required-features = ["native"]
+
 [dependencies]
 failure = "*"
 png = "*"
+serde = "*"
+serde_derive = "*"
+bincode = "*"
+ws = { version = "*", optional = true }
 platform = { path = "./lib/platform/" }
 core = { path = "./lib/core/" }
 js = { path = "./lib/js/", optional = true }
@@ -32,5 +41,5 @@ platform_native = { path = "./lib/platform_native/", optional = true }
 platform_web = { path = "./lib/platform_web/", optional = true }
 
 [features]
-native = ["platform_native"]
+native = ["platform_native", "ws"]
 web = ["js", "platform_web"]

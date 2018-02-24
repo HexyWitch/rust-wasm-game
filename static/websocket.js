@@ -3,6 +3,7 @@ const sockets = [];
 function websocket_create(url_ptr) {
     let url_str = copyCStr(url_ptr);
     var sock = new WebSocket(url_str, "rust-websocket");
+    sock.binaryType = "arraybuffer"
     var len = sockets.push(sock);
     return len - 1;
 }
@@ -32,9 +33,8 @@ function websocket_onmessage(socket_id, fn_ptr, arg) {
     var socket = sockets[socket_id];
     var f = Module.instance.exports.__web_table.get(fn_ptr)
     socket.onmessage = function (message) {
-        const utf8Encoder = new TextEncoder("UTF-8");
-        var buffer = utf8Encoder.encode(message.data);
-        var ptr = pushData(buffer);
-        f(ptr, buffer.length, arg);
+        let data_view = new Uint8Array(message.data);
+        var ptr = pushData(data_view);
+        f(ptr, data_view.length, arg);
     }
 }

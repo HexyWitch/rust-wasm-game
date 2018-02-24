@@ -6,6 +6,6 @@ pub trait WebSocket {
     where
         Self: Sized;
     fn open(&self) -> bool;
-    fn send(&self, msg: &[u8]) -> Result<(), Error>;
-    fn incoming<'a>(&'a mut self) -> Box<Iterator<Item = Message> + 'a>;
+    fn send(&mut self, msg: Vec<u8>) -> Result<(), Error>;
+    fn incoming(&mut self) -> Result<Vec<Message>, Error>;
 }

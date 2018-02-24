@@ -5,10 +5,10 @@ extern crate platform_web;
 
 pub use js::exports::*;
 
-use game::ClientServerApplication;
+use game::ClientApplication;
 
 use platform_web::WebPlatformApi;
 
 fn main() {
-    platform_web::run::<ClientServerApplication<WebPlatformApi>>();
+    platform_web::run::<ClientApplication<WebPlatformApi>>();
 }

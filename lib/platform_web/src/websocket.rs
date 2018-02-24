@@ -1,7 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::any::Any;
-use std::collections::VecDeque;
 use failure::Error;
 
 use js::websocket;
@@ -11,7 +10,7 @@ use platform::websocket::{Message, WebSocket};
 pub struct JsWebSocket {
     handle: SocketId,
     open: Rc<RefCell<bool>>,
-    incoming: Rc<RefCell<VecDeque<Message>>>,
+    incoming: Rc<RefCell<Vec<Message>>>,
 
     onopen_handle: Box<Any>,
     onmessage_handle: Box<Any>,
@@ -20,14 +19,6 @@ pub struct JsWebSocket {
 impl Drop for JsWebSocket {
     fn drop(&mut self) {
         websocket::websocket_close(self.handle, 1000, "WebSocket dropped");
-    }
-}
-
-struct MessageIter<'a>(&'a RefCell<VecDeque<Message>>);
-impl<'a> Iterator for MessageIter<'a> {
-    type Item = Message;
-    fn next(&mut self) -> Option<Message> {
-        self.0.borrow_mut().pop_front()
     }
 }
 
@@ -41,10 +32,10 @@ impl WebSocket for JsWebSocket {
             *open_cb.borrow_mut() = true;
         });
 
-        let incoming = Rc::new(RefCell::new(VecDeque::new()));
+        let incoming = Rc::new(RefCell::new(Vec::new()));
         let incoming_cb = Rc::clone(&incoming);
         let onmessage_handle =
-            websocket::websocket_onmessage(handle, move |msg| incoming_cb.borrow_mut().push_back(msg));
+            websocket::websocket_onmessage(handle, move |msg| incoming_cb.borrow_mut().push(msg));
 
         Ok(JsWebSocket {
             handle: handle,
@@ -60,16 +51,16 @@ impl WebSocket for JsWebSocket {
         *self.open.borrow()
     }
 
-    fn send(&self, msg: &[u8]) -> Result<(), Error> {
+    fn send(&mut self, data: Vec<u8>) -> Result<(), Error> {
         let open = *self.open.borrow();
         if !open {
             return Err(format_err!("error trying to send on unopened socket"));
         }
-        websocket::websocket_send(self.handle, msg);
+        websocket::websocket_send(self.handle, &data);
         Ok(())
     }
 
-    fn incoming<'a>(&'a mut self) -> Box<Iterator<Item = Message> + 'a> {
-        Box::new(MessageIter(&self.incoming))
+    fn incoming(&mut self) -> Result<Vec<Message>, Error> {
+        Ok(self.incoming.replace(Vec::new()))
     }
 }

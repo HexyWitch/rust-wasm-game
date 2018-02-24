@@ -6,6 +6,7 @@ version = "0.1.0"
 gl = "*"
 sdl2 = "*"
 failure = "*"
+ws = "*"
 
 core = { path = "../core/" }
 platform = { path = "../platform/" }

@@ -4,6 +4,7 @@ extern crate failure;
 extern crate gl;
 extern crate platform;
 extern crate sdl2;
+extern crate ws;
 
 mod input;
 pub mod websocket;
@@ -23,7 +24,7 @@ pub struct NativePlatformApi();
 
 impl PlatformApi for NativePlatformApi {
     type Renderer = renderer_gl::GLRenderer;
-    type Socket = websocket::NativeWebSocket;
+    type Socket = websocket::Client;
 }
 
 pub fn run<T: Application + 'static>() {

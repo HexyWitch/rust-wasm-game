@@ -1,4 +1,5 @@
 use failure::Error;
+use bincode::{deserialize, serialize};
 
 use platform::{Application, PlatformApi};
 use platform::input::Input;
@@ -6,7 +7,7 @@ use platform::input::Input;
 use renderer::GameRenderer;
 use game_client::GameClient;
 use game_server::GameServer;
-use net::{Packet, ClientId};
+use net::{ClientId, Packet};
 
 pub struct ClientServerApplication<A: PlatformApi> {
     renderer: GameRenderer<A::Renderer>,
@@ -20,15 +21,10 @@ where
     A: PlatformApi,
 {
     fn new() -> Result<Self, Error> {
-        let mut server = GameServer::new()?;
-        let mut client = GameClient::new()?;
         let client_id = 0;
+        let client = GameClient::new()?;
 
-        // Local server, client is already connected
-        let mut packets = Vec::new();
-        packets.push(Packet::ClientConnected);
-        client.handle_incoming_packets(&packets)?;
-
+        let mut server = GameServer::new()?;
         server.add_player(client_id)?;
 
         Ok(ClientServerApplication {
@@ -41,15 +37,19 @@ where
 
     fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
         self.server.update(dt)?;
-        let server_outgoing = self.server.take_outgoing_packets(&self.client_id)?;
+        let server_outgoing: Vec<u8> =
+            serialize(&self.server.take_outgoing_packets(&self.client_id)?)?;
 
-        self.client.handle_incoming_packets(&server_outgoing)?;
+        let client_incoming: Vec<Packet> = deserialize(&server_outgoing)?;
+        self.client.handle_incoming_packets(&client_incoming)?;
 
         self.client.update(dt, input)?;
 
-        let client_outgoing = self.client.take_outgoing_packets()?;
+        let client_outgoing: Vec<u8> = serialize(&self.client.take_outgoing_packets()?)?;
 
-        self.server.handle_incoming_packets(&client_outgoing)?;
+        let server_incoming: Vec<Packet> = deserialize(&client_outgoing)?;
+        self.server
+            .handle_incoming_packets(&self.client_id, &server_incoming)?;
 
         self.client.render(&mut self.renderer)?;
 

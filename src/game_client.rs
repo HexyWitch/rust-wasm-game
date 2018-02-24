@@ -1,10 +1,11 @@
 use std::rc::Rc;
 use std::f32;
-
+use std::collections::HashMap;
+use std::mem;
 use failure::Error;
 
 use core::assets::image_from_png;
-use platform::input::Input;
+use platform::input::{Input, Key};
 
 use texture_image::TextureImage;
 use render_interface::RenderInterface;
@@ -17,15 +18,13 @@ pub struct Assets {
 
 enum GameState {
     Connecting,
-    Initializing,
-    Running {
-        player: Ship   
-    },
+    Running { ships: HashMap<i32, Ship> },
 }
 
 pub struct GameClient {
     assets: Assets,
     state: GameState,
+    outgoing_packets: Vec<Packet>,
 }
 
 impl GameClient {
@@ -38,15 +37,27 @@ impl GameClient {
 
         Ok(GameClient {
             assets: assets,
-            state: GameState::Connecting
+            state: GameState::Connecting,
+            outgoing_packets: Vec::new(),
         })
     }
 
     pub fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
         match self.state {
-            GameState::Running{ref mut player} => {
-                player.update(dt, input)?;
-            },
+            GameState::Running { ref mut ships } => {
+                let left = input.key_is_down(&Key::A);
+                let right = input.key_is_down(&Key::D);
+                let forward = input.key_is_down(&Key::W);
+                self.outgoing_packets.push(Packet::PlayerInput {
+                    left,
+                    right,
+                    forward,
+                });
+
+                for (_, ship) in ships.iter_mut() {
+                    ship.client_update(dt, input)?;
+                }
+            }
             _ => {}
         }
         Ok(())
@@ -54,8 +65,8 @@ impl GameClient {
 
     pub fn render(&self, renderer: &mut RenderInterface) -> Result<(), Error> {
         match self.state {
-            GameState::Running{ref player} => {
-                player.render(&self.assets, renderer)?;
+            GameState::Running { ref ships } => for (_, ship) in ships.iter() {
+                ship.render(&self.assets, renderer)?;
             },
             _ => {}
         }
@@ -66,34 +77,42 @@ impl GameClient {
         for p in packets {
             match self.state {
                 GameState::Connecting => match *p {
-                    Packet::ClientConnected => {
-                        self.state = GameState::Initializing;
+                    Packet::ClientInit { ref ship_data } => {
+                        println!("Initialize game!");
+
+                        let mut ships = HashMap::new();
+                        for (id, net_data) in ship_data.iter() {
+                            let mut ship = Ship::new();
+                            ship.set_net_update(net_data);
+                            ships.insert(*id, ship);
+                        }
+                        self.state = GameState::Running { ships: ships };
                     }
-                    _ => {
-                        return Err(format_err!(
-                            "received unexpected packet during Connecting state"
-                        ));
-                    }
+                    _ => {}
                 },
-                GameState::Initializing => match *p {
-                    Packet::ClientInit { player_position } => {
-                        let mut player = Ship::new();
-                        player.set_position(player_position);
-                        self.state = GameState::Running{player};
+                GameState::Running { ref mut ships } => match *p {
+                    Packet::CreateShip(id) => {
+                        let new_ship = Ship::new();
+                        ships.insert(id, new_ship);
                     }
-                    _ => {
-                        return Err(format_err!(
-                            "received unexpected packet during Initializing state"
-                        ));
+                    Packet::DestroyShip(id) => {
+                        ships.remove(&id);
                     }
+                    Packet::ShipUpdate { id, ref update } => {
+                        let ship = ships
+                            .get_mut(&id)
+                            .ok_or_else(|| format_err!("could not update ship with id {}", id))?;
+                        ship.set_net_update(update);
+                    }
+                    _ => {}
                 },
-                GameState::Running{..} => {}
             }
         }
         Ok(())
     }
 
     pub fn take_outgoing_packets(&mut self) -> Result<Vec<Packet>, Error> {
-        Ok(Vec::new())
+        let packets = mem::replace(&mut self.outgoing_packets, Vec::new());
+        Ok(packets)
     }
 }
