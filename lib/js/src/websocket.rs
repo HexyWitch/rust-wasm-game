@@ -1,22 +1,22 @@
-use std::ffi::{CString};
-use std::os::raw::{c_void};
+use std::ffi::CString;
+use std::os::raw::{c_char, c_void};
 
 type WebSocketOnmessageCallback = unsafe extern "C" fn(*const u8, usize, *mut c_void);
 type WebSocketOnopenCallback = unsafe extern "C" fn(*mut c_void);
 
 extern "C" {
-    fn js_websocket_create(url_ptr: *const u8) -> u32;
+    fn js_websocket_create(url_ptr: *const c_char, url_len: usize) -> u32;
     fn js_websocket_send(handle: u32, data_ptr: *const u8);
     fn js_websocket_onmessage(handle: u32, fn_ptr: WebSocketOnmessageCallback, arg: *mut c_void);
     fn js_websocket_onopen(handle: u32, fn_ptr: WebSocketOnopenCallback, arg: *mut c_void);
-    fn js_websocket_close(handle: u32, code: i32, reason_ptr: *const u8);
+    fn js_websocket_close(handle: u32, code: i32, reason_ptr: *const c_char, reason_len: usize);
 }
 
 pub type SocketId = u32;
 
 pub fn websocket_create(url: &str) -> SocketId {
     let c_url = CString::new(url).unwrap();
-    unsafe { js_websocket_create(c_url.as_ptr() as *const u8) }
+    unsafe { js_websocket_create(c_url.as_ptr() as *const c_char, c_url.as_bytes().len()) }
 }
 
 pub struct CallbackHandle<T>(*mut T);
@@ -89,5 +89,12 @@ pub fn websocket_send(handle: SocketId, data: &[u8]) {
 
 pub fn websocket_close(handle: SocketId, code: i32, reason: &str) {
     let c_reason = CString::new(reason).unwrap();
-    unsafe { js_websocket_close(handle, code, c_reason.as_ptr() as *const u8) }
+    unsafe {
+        js_websocket_close(
+            handle,
+            code,
+            c_reason.as_ptr() as *const c_char,
+            c_reason.as_bytes().len(),
+        )
+    }
 }

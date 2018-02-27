@@ -6,7 +6,7 @@ pub mod websocket;
 pub mod exports;
 
 use std::ffi::CString;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 use std::ptr::null_mut;
 use std::cell::RefCell;
 use std::mem;
@@ -14,8 +14,24 @@ use std::mem;
 type MainLoopCallback = unsafe extern "C" fn(*const c_void, usize);
 
 extern "C" {
-    fn js_console_log(ptr: *const u8);
+    fn js_drop_object(value: JsInner);
+    fn js_console_log(ptr: *const c_char, len: usize);
     fn js_set_main_loop(fn_ptr: MainLoopCallback);
+}
+
+pub type JsInner = u32;
+pub struct JsValue(pub JsInner);
+
+impl JsValue {
+    fn new(inner: JsInner) -> JsValue {
+        JsValue(inner)
+    }
+}
+
+impl Drop for JsValue {
+    fn drop(&mut self) {
+        unsafe { js_drop_object(self.0) }
+    }
 }
 
 thread_local!(static MAIN_LOOP_CALLBACK: RefCell<*mut c_void> = RefCell::new(null_mut()));
@@ -24,12 +40,11 @@ thread_local!(static MAIN_LOOP_CALLBACK: RefCell<*mut c_void> = RefCell::new(nul
 pub fn console_log(s: &str) {
     let c_str = CString::new(s).unwrap();
     unsafe {
-        js_console_log(c_str.as_ptr() as *const u8);
+        js_console_log(c_str.as_ptr() as *const c_char, c_str.as_bytes().len());
     }
 }
 
-// Will exit the application and pass callback into javascript, where it will be called on a timer
-// Should only be called once at the exit point of your application
+// Sets the javascript main loop
 pub fn set_main_loop_callback<T>(callback: T)
 where
     T: FnMut(&[InputEvent]) + 'static,

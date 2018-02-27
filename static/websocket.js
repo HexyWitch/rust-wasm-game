@@ -1,7 +1,7 @@
 const sockets = [];
 
-function websocket_create(url_ptr) {
-    let url_str = copyCStr(url_ptr);
+function websocket_create(url_ptr, url_len) {
+    let url_str = getString(url_ptr, url_len);
     var sock = new WebSocket(url_str, "rust-websocket");
     sock.binaryType = "arraybuffer"
     var len = sockets.push(sock);
@@ -24,7 +24,7 @@ function websocket_onopen(socket_id, fn_ptr, arg) {
 
 function websocket_close(socket_id, code, reason_ptr) {
     var socket = sockets[socket_id];
-    var reason = copyCStr(reason_ptr);
+    var reason = getString(reason_ptr, reason_len);
     sockets[socket_id] = null;
     socket.close(code, reason);
 }

@@ -6,33 +6,62 @@ use js::webgl::types::*;
 use core::assets::Image;
 use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
-struct GLVertexShader {
-    handle: webgl::ShaderHandle,
+struct WebGLVertexShader {
+    handle: webgl::Shader,
 }
 
-impl GLVertexShader {
-    fn new(src: &str) -> Result<GLVertexShader, Error> {
-        Ok(GLVertexShader {
+impl WebGLVertexShader {
+    fn new(src: &str) -> Result<WebGLVertexShader, Error> {
+        Ok(WebGLVertexShader {
             handle: compile_shader(src, webgl::VERTEX_SHADER)?,
         })
     }
-    fn handle<'a>(&'a self) -> &'a webgl::ShaderHandle {
+    fn handle<'a>(&'a self) -> &'a webgl::Shader {
         &self.handle
     }
 }
 
-struct GLFragmentShader {
-    handle: webgl::ShaderHandle,
+impl Drop for WebGLVertexShader {
+    fn drop(&mut self) {
+        webgl::delete_shader(self.handle())
+    }
 }
 
-impl GLFragmentShader {
-    fn new(src: &str) -> Result<GLFragmentShader, Error> {
-        Ok(GLFragmentShader {
+struct WebGLFragmentShader {
+    handle: webgl::Shader,
+}
+
+impl WebGLFragmentShader {
+    fn new(src: &str) -> Result<WebGLFragmentShader, Error> {
+        Ok(WebGLFragmentShader {
             handle: compile_shader(src, webgl::FRAGMENT_SHADER)?,
         })
     }
-    fn handle<'a>(&'a self) -> &'a webgl::ShaderHandle {
+    fn handle<'a>(&'a self) -> &'a webgl::Shader {
         &self.handle
+    }
+}
+
+impl Drop for WebGLFragmentShader {
+    fn drop(&mut self) {
+        webgl::delete_shader(self.handle())
+    }
+}
+
+pub struct WebGLBuffer(webgl::Buffer);
+
+impl WebGLBuffer {
+    fn new(buffer: webgl::Buffer) -> WebGLBuffer {
+        WebGLBuffer(buffer)
+    }
+    fn handle<'a>(&'a self) -> &'a webgl::Shader {
+        &self.0
+    }
+}
+
+impl Drop for WebGLBuffer {
+    fn drop(&mut self) {
+        webgl::delete_buffer(&self.0);
     }
 }
 
@@ -40,21 +69,27 @@ type WebGLUniform = Uniform<WebGLTexture>;
 
 pub struct WebGLProgram {
     uniforms: Vec<(String, WebGLUniform)>,
-    handle: webgl::ProgramHandle,
+    handle: webgl::Program,
 }
 
 impl WebGLProgram {
     fn new(
-        vertex_shader: GLVertexShader,
-        frag_shader: GLFragmentShader,
+        vertex_shader: WebGLVertexShader,
+        frag_shader: WebGLFragmentShader,
     ) -> Result<WebGLProgram, Error> {
         Ok(WebGLProgram {
             uniforms: Vec::new(),
-            handle: link_program(vertex_shader.handle(), frag_shader.handle())?,
+            handle: link_program(&vertex_shader, &frag_shader)?,
         })
     }
-    fn handle<'a>(&'a self) -> &webgl::ProgramHandle {
+    fn handle<'a>(&'a self) -> &webgl::Program {
         &self.handle
+    }
+}
+
+impl Drop for WebGLProgram {
+    fn drop(&mut self) {
+        webgl::delete_program(self.handle())
     }
 }
 
@@ -67,9 +102,7 @@ impl Program<WebGLTexture> for WebGLProgram {
     }
 }
 
-pub struct WebGLTexture {
-    handle: webgl::TextureHandle,
-}
+pub struct WebGLTexture(webgl::Texture);
 
 impl WebGLTexture {
     fn new(size: (u32, u32)) -> WebGLTexture {
@@ -97,16 +130,22 @@ impl WebGLTexture {
             webgl::UNSIGNED_BYTE,
             None,
         );
-        WebGLTexture { handle }
+        WebGLTexture(handle)
     }
-    fn handle<'a>(&'a self) -> &'a webgl::TextureHandle {
-        &self.handle
+    fn handle<'a>(&'a self) -> &'a webgl::Texture {
+        &self.0
+    }
+}
+
+impl Drop for WebGLTexture {
+    fn drop(&mut self) {
+        webgl::delete_texture(self.handle())
     }
 }
 
 impl Texture for WebGLTexture {
     fn set_region(&self, image: &Image, offset: (u32, u32)) {
-        webgl::bind_texture(webgl::TEXTURE_2D, &self.handle);
+        webgl::bind_texture(webgl::TEXTURE_2D, self.handle());
         webgl::tex_sub_image_2d(
             webgl::TEXTURE_2D,
             0,
@@ -126,16 +165,16 @@ pub struct WebGLRenderer();
 impl Renderer for WebGLRenderer {
     type Texture = WebGLTexture;
     type Program = WebGLProgram;
-    type VertexBuffer = webgl::BufferHandle; // (vertex array, vertex buffer)
+    type VertexBuffer = WebGLBuffer; // (vertex array, vertex buffer)
 
     fn create_vertex_buffer() -> Result<Self::VertexBuffer, Error> {
-        let vbo = webgl::create_buffer();
+        let vbo = WebGLBuffer::new(webgl::create_buffer());
 
         Ok(vbo)
     }
     fn create_program(vs: &str, fs: &str) -> Result<WebGLProgram, Error> {
-        let vs = GLVertexShader::new(vs)?;
-        let fs = GLFragmentShader::new(fs)?;
+        let vs = WebGLVertexShader::new(vs)?;
+        let fs = WebGLFragmentShader::new(fs)?;
 
         Ok(WebGLProgram::new(vs, fs)?)
     }
@@ -152,7 +191,7 @@ impl Renderer for WebGLRenderer {
         webgl::enable(webgl::BLEND);
 
         // push vertex data
-        webgl::bind_buffer(webgl::ARRAY_BUFFER, vertex_buffer);
+        webgl::bind_buffer(webgl::ARRAY_BUFFER, vertex_buffer.handle());
         unsafe {
             webgl::buffer_data(
                 webgl::ARRAY_BUFFER,
@@ -222,7 +261,7 @@ impl Renderer for WebGLRenderer {
     }
 }
 
-fn compile_shader(src: &str, t: GLenum) -> Result<webgl::ShaderHandle, Error> {
+fn compile_shader(src: &str, t: GLenum) -> Result<webgl::Shader, Error> {
     let shader;
     shader = webgl::create_shader(t);
     webgl::shader_source(&shader, src);
@@ -236,13 +275,10 @@ fn compile_shader(src: &str, t: GLenum) -> Result<webgl::ShaderHandle, Error> {
     Ok(shader)
 }
 
-fn link_program(
-    vs: &webgl::ShaderHandle,
-    fs: &webgl::ShaderHandle,
-) -> Result<webgl::ProgramHandle, Error> {
+fn link_program(vs: &WebGLVertexShader, fs: &WebGLFragmentShader) -> Result<webgl::Program, Error> {
     let program = webgl::create_program();
-    webgl::attach_shader(&program, vs);
-    webgl::attach_shader(&program, fs);
+    webgl::attach_shader(&program, vs.handle());
+    webgl::attach_shader(&program, fs.handle());
     webgl::link_program(&program);
 
     let status = webgl::get_program_parameter(&program, webgl::LINK_STATUS);
