@@ -1,14 +1,20 @@
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
+use wasm_bindgen::prelude::*;
 
 type WebSocketOnmessageCallback = unsafe extern "C" fn(*const u8, usize, *mut c_void);
 type WebSocketOnopenCallback = unsafe extern "C" fn(*mut c_void);
 
+#[wasm_bindgen]
 extern "C" {
     fn js_websocket_create(url_ptr: *const c_char, url_len: usize) -> u32;
     fn js_websocket_send(handle: u32, data_ptr: *const u8);
-    fn js_websocket_onmessage(handle: u32, fn_ptr: WebSocketOnmessageCallback, arg: *mut c_void);
-    fn js_websocket_onopen(handle: u32, fn_ptr: WebSocketOnopenCallback, arg: *mut c_void);
+    fn js_websocket_onmessage(
+        handle: u32,
+        fn_ptr: *const WebSocketOnmessageCallback,
+        arg: *mut c_void,
+    );
+    fn js_websocket_onopen(handle: u32, fn_ptr: *const WebSocketOnopenCallback, arg: *mut c_void);
     fn js_websocket_close(handle: u32, code: i32, reason_ptr: *const c_char, reason_len: usize);
 }
 
@@ -55,7 +61,11 @@ where
 
     let handle = CallbackHandle::new(callback);
     unsafe {
-        js_websocket_onopen(socket, wrapper::<T>, handle.ptr() as *mut c_void);
+        js_websocket_onopen(
+            socket,
+            wrapper::<T> as *const WebSocketOnopenCallback,
+            handle.ptr() as *mut c_void,
+        );
     }
     handle
 }
@@ -78,7 +88,11 @@ where
 
     let handle = CallbackHandle::new(callback);
     unsafe {
-        js_websocket_onmessage(socket, wrapper::<T>, handle.ptr() as *mut c_void);
+        js_websocket_onmessage(
+            socket,
+            wrapper::<T> as *const WebSocketOnmessageCallback,
+            handle.ptr() as *mut c_void,
+        );
     }
     handle
 }

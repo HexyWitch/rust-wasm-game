@@ -193,12 +193,11 @@ impl Renderer for WebGLRenderer {
         // push vertex data
         webgl::bind_buffer(webgl::ARRAY_BUFFER, vertex_buffer.handle());
         unsafe {
-            webgl::buffer_data(
-                webgl::ARRAY_BUFFER,
-                (vertices.len() * V::stride()) as GLsizeiptr,
+            let data = ::std::slice::from_raw_parts(
                 vertices.as_ptr() as *const u8,
-                webgl::STATIC_DRAW,
+                vertices.len() * V::stride(),
             );
+            webgl::buffer_data(webgl::ARRAY_BUFFER, data, webgl::STATIC_DRAW);
         }
 
         webgl::use_program(program.handle());

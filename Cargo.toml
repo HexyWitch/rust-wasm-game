@@ -37,9 +37,10 @@ ws = { version = "*", optional = true }
 platform = { path = "./lib/platform/" }
 core = { path = "./lib/core/" }
 js = { path = "./lib/js/", optional = true }
+wasm-bindgen = { git = 'https://github.com/Healthire/wasm-bindgen', rev = 'fn-args', optional = true }
 platform_native = { path = "./lib/platform_native/", optional = true }
 platform_web = { path = "./lib/platform_web/", optional = true }
 
 [features]
 native = ["platform_native", "ws"]
-web = ["js", "platform_web"]
+web = ["js", "platform_web", "wasm-bindgen"]

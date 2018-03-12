@@ -29,11 +29,12 @@ pub fn run<T: Application + 'static>() {
     io::set_print(Some(Box::new(ConsoleWriter::new())));
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
+    js::webgl::gl_load_context("window");
     let mut application = T::new().unwrap();
     let mut input = Input::new();
-    js::set_main_loop_callback(move |input_events| {
-        let input_events: Vec<InputEvent> = input_events.iter().map(to_input_event).collect();
-        input.update(&input_events);
+    js::set_main_loop_callback(move || {
+        // let input_events: Vec<InputEvent> = input_events.iter().map(to_input_event).collect();
+        // input.update(&input_events);
 
         application.update(0.016, &input).unwrap();
     });
