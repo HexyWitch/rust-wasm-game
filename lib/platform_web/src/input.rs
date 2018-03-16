@@ -1,7 +1,6 @@
-use js::InputEvent as JsInputEvent;
-use platform::input::{InputEvent, Key, MouseButton};
+use platform::input::{Key, MouseButton};
 
-fn to_mouse_button(button: i8) -> MouseButton {
+pub fn to_mouse_button(button: i8) -> MouseButton {
     match button {
         0 => MouseButton::Left,
         1 => MouseButton::Middle,
@@ -10,7 +9,7 @@ fn to_mouse_button(button: i8) -> MouseButton {
     }
 }
 
-fn to_key(key_code: i32) -> Key {
+pub fn to_key(key_code: i32) -> Key {
     match key_code {
         8 => Key::Backspace,
         9 => Key::Tab,
@@ -111,27 +110,5 @@ fn to_key(key_code: i32) -> Key {
         221 => Key::RightBracket,
         222 => Key::Quote,
         _ => Key::Unknown,
-    }
-}
-
-pub fn to_input_event(event: &JsInputEvent) -> InputEvent {
-    match *event {
-        JsInputEvent::MouseMove(x, y) => InputEvent::MouseMove(x, y),
-        JsInputEvent::MouseDown {
-            button: b,
-            position: p,
-        } => InputEvent::MouseDown {
-            button: to_mouse_button(b),
-            position: p,
-        },
-        JsInputEvent::MouseUp {
-            button: b,
-            position: p,
-        } => InputEvent::MouseUp {
-            button: to_mouse_button(b),
-            position: p,
-        },
-        JsInputEvent::KeyDown(key) => InputEvent::KeyDown(to_key(key)),
-        JsInputEvent::KeyUp(key) => InputEvent::KeyUp(to_key(key)),
     }
 }

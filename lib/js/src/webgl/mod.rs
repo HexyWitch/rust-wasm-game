@@ -2,9 +2,6 @@ pub mod types;
 #[allow(dead_code)]
 pub mod constants;
 
-use std::ffi::CString;
-use std::os::raw::{c_char, c_void};
-use std::ptr;
 use failure::Error;
 use wasm_bindgen::prelude::*;
 
@@ -71,8 +68,7 @@ extern "C" {
     fn gl_shader_source(shader: &JsValue, source: &str);
     fn gl_compile_shader(shader: &JsValue);
     fn gl_get_shader_parameter(shader: &JsValue, pname: GLenum) -> GLint;
-    fn gl_shader_info_log_len(shader: &JsValue) -> GLsizei;
-    fn gl_get_shader_info_log(shader: &JsValue, size: GLsizei, log: *mut c_char);
+    fn gl_get_shader_info_log(shader: &JsValue) -> String;
 
     fn gl_create_program() -> JsValue;
     fn gl_delete_program(program: &JsValue);
@@ -80,7 +76,6 @@ extern "C" {
     fn gl_link_program(program: &JsValue);
     fn gl_use_program(program: &JsValue);
     fn gl_get_program_parameter(program: &JsValue, pname: GLenum) -> GLint;
-    fn gl_program_info_log_len(program: &JsValue) -> GLsizei;
     fn gl_get_program_info_log(program: &JsValue) -> String;
 
     fn gl_get_uniform_location(program: &JsValue, name: &str) -> JsValue;
@@ -105,51 +100,35 @@ extern "C" {
 }
 
 pub fn enable(cap: GLenum) {
-    unsafe {
-        gl_enable(cap);
-    }
+    gl_enable(cap);
 }
 pub fn blend_func(sfactor: GLenum, dfactor: GLenum) {
-    unsafe {
-        gl_blend_func(sfactor, dfactor);
-    }
+    gl_blend_func(sfactor, dfactor);
 }
 pub fn draw_arrays(mode: GLenum, first: GLint, count: usize) {
-    unsafe {
-        gl_draw_arrays(mode, first, count as GLsizei);
-    }
+    gl_draw_arrays(mode, first, count as GLsizei);
 }
 pub fn clear_color(r: GLclampf, g: GLclampf, b: GLclampf, a: GLclampf) {
-    unsafe {
-        gl_clear_color(r, g, b, a);
-    }
+    gl_clear_color(r, g, b, a);
 }
 pub fn clear(mask: GLbitfield) {
-    unsafe {
-        gl_clear(mask);
-    }
+    gl_clear(mask);
 }
 
 pub fn create_texture() -> Texture {
-    unsafe { gl_create_texture() }
+    gl_create_texture()
 }
 pub fn delete_texture(texture: &Texture) {
-    unsafe { gl_delete_texture(texture) }
+    gl_delete_texture(texture);
 }
 pub fn bind_texture(target: GLenum, texture: &Texture) {
-    unsafe {
-        gl_bind_texture(target, texture);
-    }
+    gl_bind_texture(target, texture);
 }
 pub fn active_texture(texture: GLenum) {
-    unsafe {
-        gl_active_texture(texture);
-    }
+    gl_active_texture(texture);
 }
 pub fn tex_parameter_i(target: GLenum, pname: GLenum, param: GLint) {
-    unsafe {
-        gl_tex_parameter_i(target, pname, param);
-    }
+    gl_tex_parameter_i(target, pname, param);
 }
 pub fn tex_image_2d(
     target: GLenum,
@@ -198,123 +177,96 @@ pub fn tex_sub_image_2d(
     data_type: GLenum,
     pixels: &[u8],
 ) {
-    unsafe {
-        gl_tex_sub_image_2d(
-            target,
-            level,
-            xoffset,
-            yoffset,
-            width,
-            height,
-            format,
-            data_type,
-            pixels,
-        );
-    }
+    gl_tex_sub_image_2d(
+        target,
+        level,
+        xoffset,
+        yoffset,
+        width,
+        height,
+        format,
+        data_type,
+        pixels,
+    );
 }
 
 pub fn create_shader(shader_type: GLenum) -> Shader {
-    unsafe { gl_create_shader(shader_type) }
+    gl_create_shader(shader_type)
 }
 pub fn delete_shader(shader: &Shader) {
-    unsafe { gl_delete_shader(shader) }
+    gl_delete_shader(shader);
 }
 pub fn shader_source(shader: &Shader, source: &str) {
-    unsafe {
-        gl_shader_source(shader, source);
-    }
+    gl_shader_source(shader, source);
 }
 pub fn compile_shader(shader: &Shader) {
-    unsafe {
-        gl_compile_shader(shader);
-    }
+    gl_compile_shader(shader);
 }
 pub fn get_shader_parameter(shader: &Shader, pname: GLenum) -> GLint {
-    unsafe { gl_get_shader_parameter(shader, pname) }
+    gl_get_shader_parameter(shader, pname)
 }
 pub fn get_shader_info_log<'a>(shader: &Shader) -> String {
-    unsafe {
-        let len = gl_shader_info_log_len(shader);
-        let mut buf = vec![0; len as usize];
-        gl_get_shader_info_log(
-            shader,
-            len as GLsizeiptr,
-            (&mut buf).as_mut_ptr() as *mut c_char,
-        );
-        String::from_utf8(buf).expect("Shader info log is not valid UTF-8")
-    }
+    gl_get_shader_info_log(shader)
 }
 
 pub fn create_program() -> Program {
-    unsafe { gl_create_program() }
+    gl_create_program()
 }
 pub fn delete_program(program: &Program) {
-    unsafe { gl_delete_program(program) }
+    gl_delete_program(program);
 }
 pub fn attach_shader(program: &Program, shader: &Shader) {
-    unsafe {
-        gl_attach_shader(program, shader);
-    }
+    gl_attach_shader(program, shader);
 }
 pub fn link_program(program: &Program) {
-    unsafe {
-        gl_link_program(program);
-    }
+    gl_link_program(program);
 }
 pub fn use_program(program: &Program) {
-    unsafe {
-        gl_use_program(program);
-    }
+    gl_use_program(program);
 }
 pub fn get_program_parameter(program: &Program, pname: GLenum) -> GLint {
-    unsafe { gl_get_program_parameter(program, pname) }
+    gl_get_program_parameter(program, pname)
 }
 pub fn get_program_info_log<'a>(program: &Program) -> String {
-    unsafe { gl_get_program_info_log(program) }
+    gl_get_program_info_log(program)
 }
 
 pub fn get_uniform_location(program: &Program, name: &str) -> UniformLocation {
     gl_get_uniform_location(program, name)
 }
 pub fn uniform_2f(location: &UniformLocation, v0: GLfloat, v1: GLfloat) {
-    unsafe {
-        gl_uniform2f(location, v0, v1);
-    }
+    gl_uniform2f(location, v0, v1);
 }
 pub fn uniform_1i(location: &UniformLocation, v0: GLint) {
-    unsafe {
-        gl_uniform1i(location, v0);
-    }
+    gl_uniform1i(location, v0);
 }
 
 pub fn create_buffer() -> Buffer {
-    unsafe { gl_create_buffer() }
+    gl_create_buffer()
 }
 pub fn delete_buffer(buffer: &Buffer) {
-    unsafe { gl_delete_buffer(buffer) }
+    gl_delete_buffer(buffer);
 }
 pub fn bind_buffer(target: GLenum, buffer: &Buffer) {
-    unsafe {
-        gl_bind_buffer(target, buffer);
-    }
+    gl_bind_buffer(target, buffer);
 }
 pub unsafe fn buffer_data(target: GLenum, data: &[u8], usage: GLenum) {
     gl_buffer_data(target, data, usage);
 }
 
 pub fn get_attrib_location(program: &Program, name: &str) -> Result<AttribIndex, Error> {
-    let location = unsafe { gl_get_attrib_location(program, name) };
+    let location = gl_get_attrib_location(program, name);
     if location < 0 {
         Err(format_err!("Attribute '{}' could not be found", name))
     } else {
         Ok(location as AttribIndex)
     }
 }
+
 pub fn enable_vertex_attrib_array(index: AttribIndex) {
-    unsafe {
-        gl_enable_vertex_attrib_array(index);
-    }
+    gl_enable_vertex_attrib_array(index);
 }
+
 pub fn vertex_attrib_pointer(
     index: AttribIndex,
     size: usize,
@@ -323,14 +275,12 @@ pub fn vertex_attrib_pointer(
     stride: usize,
     offset: usize,
 ) {
-    unsafe {
-        gl_vertex_attrib_pointer(
-            index,
-            size as GLint,
-            attrib_type,
-            normalized,
-            stride as GLsizei,
-            offset as GLintptr,
-        );
-    }
+    gl_vertex_attrib_pointer(
+        index,
+        size as GLint,
+        attrib_type,
+        normalized,
+        stride as GLsizei,
+        offset as GLintptr,
+    );
 }

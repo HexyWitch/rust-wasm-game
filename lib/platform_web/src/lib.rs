@@ -9,12 +9,13 @@ use std::io;
 
 mod input;
 mod console_writer;
+mod window;
 pub mod websocket;
 pub mod renderer_webgl;
 
 use platform::{Application, PlatformApi};
-use platform::input::{Input, InputEvent};
-use input::to_input_event;
+use platform::input::Input;
+use window::Window;
 
 use self::console_writer::ConsoleWriter;
 
@@ -32,9 +33,12 @@ pub fn run<T: Application + 'static>() {
     js::webgl::gl_load_context("window");
     let mut application = T::new().unwrap();
     let mut input = Input::new();
-    js::set_main_loop_callback(move || {
-        // let input_events: Vec<InputEvent> = input_events.iter().map(to_input_event).collect();
-        // input.update(&input_events);
+
+    let mut window = Window::new("window").unwrap();
+    let mut event_dispatch = window.events();
+    window.set_main_loop(move || {
+        let events = event_dispatch.input_events();
+        input.update(&events);
 
         application.update(0.016, &input).unwrap();
     });

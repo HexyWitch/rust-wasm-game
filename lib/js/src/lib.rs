@@ -1,4 +1,5 @@
 #![feature(proc_macro)]
+#![allow(non_camel_case_types)]
 
 #[macro_use]
 extern crate failure;
@@ -7,127 +8,112 @@ extern crate wasm_bindgen;
 pub mod webgl;
 pub mod websocket;
 
-use std::ffi::CString;
-use std::os::raw::{c_char, c_void};
-use std::ptr::null_mut;
-use std::cell::RefCell;
-use std::mem;
+use failure::Error;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "./main")]
+#[wasm_bindgen]
 extern "C" {
-    pub fn console_log(msg: &str);
-    fn set_main_loop(f: unsafe extern "C" fn());
+    pub type console;
+
+    #[wasm_bindgen(static = console)]
+    pub fn log(s: &str);
 }
 
-thread_local!(static MAIN_LOOP_CALLBACK: RefCell<*mut c_void> = RefCell::new(null_mut()));
+#[wasm_bindgen(module = "./window")]
+extern "C" {
+    pub type Window;
 
-// Sets the javascript main loop
-pub fn set_main_loop_callback<T>(callback: T)
-where
-    T: FnMut() + 'static,
-{
-    MAIN_LOOP_CALLBACK
-        .with(|cb| *cb.borrow_mut() = Box::into_raw(Box::new(callback)) as *mut c_void);
+    #[wasm_bindgen(constructor)]
+    pub fn new(canvas_id: &str, input_handler: InputHandler) -> Window;
 
-    pub unsafe extern "C" fn wrapper<T>()
-    where
-        T: FnMut(),
-    {
-        MAIN_LOOP_CALLBACK.with(|cb| {
-            let callback = *cb.borrow_mut() as *mut T;
-            (*callback)()
-        })
+    #[wasm_bindgen(method)]
+    pub fn set_main_loop(this: &Window, cb: MainLoopCallback);
+
+    #[wasm_bindgen(static = Window)]
+    pub fn log(msg: &str);
+}
+
+#[wasm_bindgen]
+pub struct MainLoopCallback(pub Box<FnMut() + 'static>);
+
+#[wasm_bindgen]
+impl MainLoopCallback {
+    pub fn call(&mut self) {
+        (*self.0)();
     }
-
-    set_main_loop(wrapper::<T>);
 }
 
-#[derive(Debug)]
-pub enum InputEvent {
-    MouseMove(i32, i32),
-    MouseDown { button: i8, position: (i32, i32) },
-    MouseUp { button: i8, position: (i32, i32) },
-    KeyDown(i32),
-    KeyUp(i32),
+type MouseX = i32;
+type MouseY = i32;
+type MouseButton = i8;
+type Key = i32;
+
+type MouseMoveCallback = Box<FnMut(MouseX, MouseY) + 'static>;
+type MouseButtonCallback = Box<FnMut(MouseButton, MouseX, MouseY) + 'static>;
+type KeyboardCallback = Box<FnMut(Key) + 'static>;
+
+#[wasm_bindgen]
+pub struct InputHandler {
+    mouse_move: Option<MouseMoveCallback>,
+    mouse_down: Option<MouseButtonCallback>,
+    mouse_up: Option<MouseButtonCallback>,
+    key_down: Option<KeyboardCallback>,
+    key_up: Option<KeyboardCallback>,
 }
 
-#[derive(Clone, Copy)]
-#[repr(u8)]
-pub enum InputEventType {
-    MouseMove,
-    MouseDown,
-    MouseUp,
-    KeyDown,
-    KeyUp,
-}
-
-// Raw FFI types for the InputEvent enum
-// Each of these structs represent one or more InputEvent types,
-// they must all include a type id as their first member to identify their
-// type
-#[repr(C)]
-struct MouseMoveEvent {
-    type_id: InputEventType,
-    x: i32,
-    y: i32,
-}
-
-#[repr(C)]
-struct MouseButtonEvent {
-    type_id: InputEventType,
-    button: i8,
-    x: i32,
-    y: i32,
-}
-
-#[repr(C)]
-struct KeyEvent {
-    type_id: InputEventType,
-    key: i32,
-}
-
-unsafe fn read_input_events(start_ptr: *const c_void, length: usize) -> Vec<InputEvent> {
-    let mut buffer = Vec::new();
-    let mut offset = 0;
-    for _ in 0..length {
-        match *(start_ptr.offset(offset) as *const InputEventType) {
-            InputEventType::MouseMove => {
-                let MouseMoveEvent { x, y, .. } =
-                    *(start_ptr.offset(offset) as *const MouseMoveEvent);
-                buffer.push(InputEvent::MouseMove(x, y));
-                offset += mem::size_of::<MouseMoveEvent>() as isize;
-            }
-            InputEventType::MouseDown | InputEventType::MouseUp => {
-                let MouseButtonEvent {
-                    type_id,
-                    button,
-                    x,
-                    y,
-                } = *(start_ptr.offset(offset) as *const MouseButtonEvent);
-                match type_id {
-                    InputEventType::MouseDown => buffer.push(InputEvent::MouseDown {
-                        button: button,
-                        position: (x, y),
-                    }),
-                    InputEventType::MouseUp => buffer.push(InputEvent::MouseUp {
-                        button: button,
-                        position: (x, y),
-                    }),
-                    _ => {}
-                }
-                offset += mem::size_of::<MouseButtonEvent>() as isize;
-            }
-            InputEventType::KeyDown | InputEventType::KeyUp => {
-                let KeyEvent { type_id, key } = *(start_ptr.offset(offset) as *const KeyEvent);
-                match type_id {
-                    InputEventType::KeyDown => buffer.push(InputEvent::KeyDown(key)),
-                    InputEventType::KeyUp => buffer.push(InputEvent::KeyUp(key)),
-                    _ => {}
-                }
-                offset += mem::size_of::<KeyEvent>() as isize;
-            }
+#[wasm_bindgen]
+impl InputHandler {
+    pub fn mouse_move(&mut self, x: MouseX, y: MouseY) {
+        if let Some(ref mut mouse_move) = self.mouse_move {
+            (*mouse_move)(x, y);
         }
     }
-    buffer
+    pub fn mouse_down(&mut self, button: MouseButton, x: MouseX, y: MouseY) {
+        if let Some(ref mut mouse_down) = self.mouse_down {
+            (*mouse_down)(button, x, y);
+        }
+    }
+    pub fn mouse_up(&mut self, button: MouseButton, x: MouseX, y: MouseY) {
+        if let Some(ref mut mouse_up) = self.mouse_up {
+            (*mouse_up)(button, x, y);
+        }
+    }
+    pub fn key_down(&mut self, key: Key) {
+        if let Some(ref mut key_down) = self.key_down {
+            (*key_down)(key);
+        }
+    }
+    pub fn key_up(&mut self, key: Key) {
+        if let Some(ref mut key_up) = self.key_up {
+            (*key_up)(key);
+        }
+    }
+}
+
+impl InputHandler {
+    pub fn new() -> InputHandler {
+        InputHandler {
+            mouse_move: None,
+            mouse_down: None,
+            mouse_up: None,
+            key_down: None,
+            key_up: None,
+        }
+    }
+
+    pub fn set_mouse_move<T: FnMut(MouseX, MouseY) + 'static>(&mut self, f: T) {
+        self.mouse_move = Some(Box::new(f));
+    }
+    pub fn set_mouse_down<T: FnMut(MouseButton, MouseX, MouseY) + 'static>(&mut self, f: T) {
+        self.mouse_down = Some(Box::new(f));
+    }
+    pub fn set_mouse_up<T: FnMut(MouseButton, MouseX, MouseY) + 'static>(&mut self, f: T) {
+        self.mouse_up = Some(Box::new(f));
+    }
+    pub fn set_key_down<T: FnMut(Key) + 'static>(&mut self, f: T) {
+        self.key_down = Some(Box::new(f));
+    }
+    pub fn set_key_up<T: FnMut(Key) + 'static>(&mut self, f: T) {
+        self.key_up = Some(Box::new(f));
+    }
 }
