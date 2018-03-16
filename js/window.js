@@ -20,11 +20,8 @@ export class Window {
     }
 
     set_main_loop(cb) {
-        var input_events = [];
-
         function runner() {
-            cb.call(input_events);
-            input_events = [];
+            cb.call();
             window.requestAnimationFrame(runner);
         }
         window.requestAnimationFrame(runner);
