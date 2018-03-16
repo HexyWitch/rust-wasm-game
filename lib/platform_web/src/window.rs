@@ -5,6 +5,7 @@ use std::mem;
 use failure::Error;
 
 use js::{InputHandler as JsInputHandler, MainLoopCallback, Window as JsWindow};
+use js::webgl;
 use platform::input::InputEvent;
 
 use input::{to_key, to_mouse_button};
@@ -67,8 +68,12 @@ impl Window {
         EventDispatch(self.input_events.clone())
     }
 
-    pub fn set_main_loop<T: FnMut() + 'static>(&mut self, f: T) {
+    pub fn set_main_loop<T: FnMut() + 'static>(self, f: T) {
         self.js_window.set_main_loop(MainLoopCallback(Box::new(f)));
+    }
+
+    pub fn gl_context(&self) -> webgl::GlContext {
+        self.js_window.gl_context()
     }
 }
 

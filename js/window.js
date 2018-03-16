@@ -1,3 +1,5 @@
+import { GlContext } from './webgl';
+
 export class Window {
     constructor(canvas_id, input_handler) {
         this.canvas = document.getElementById("window");
@@ -25,6 +27,10 @@ export class Window {
             window.requestAnimationFrame(runner);
         }
         window.requestAnimationFrame(runner);
+    }
+
+    gl_context() {
+        return new GlContext(this.canvas);
     }
 
     static log(msg) {

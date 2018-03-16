@@ -1,14 +1,12 @@
 #![feature(proc_macro)]
 #![allow(non_camel_case_types)]
 
-#[macro_use]
 extern crate failure;
 extern crate wasm_bindgen;
 
 pub mod webgl;
 pub mod websocket;
 
-use failure::Error;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -28,6 +26,9 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     pub fn set_main_loop(this: &Window, cb: MainLoopCallback);
+
+    #[wasm_bindgen(method)]
+    pub fn gl_context(this: &Window) -> webgl::GlContext;
 
     #[wasm_bindgen(static = Window)]
     pub fn log(msg: &str);

@@ -119,7 +119,7 @@ impl WebGLTexture {
             webgl::LINEAR as GLint,
         );
 
-        webgl::tex_image_2d(
+        webgl::tex_image_2d_empty(
             webgl::TEXTURE_2D,
             0,
             webgl::RGBA,
@@ -128,7 +128,6 @@ impl WebGLTexture {
             0 as GLint,
             webgl::RGBA,
             webgl::UNSIGNED_BYTE,
-            None,
         );
         WebGLTexture(handle)
     }
@@ -146,7 +145,7 @@ impl Drop for WebGLTexture {
 impl Texture for WebGLTexture {
     fn set_region(&self, image: &Image, offset: (u32, u32)) {
         webgl::bind_texture(webgl::TEXTURE_2D, self.handle());
-        webgl::tex_sub_image_2d(
+        webgl::tex_sub_image_2d_u8(
             webgl::TEXTURE_2D,
             0,
             offset.0 as GLint,
@@ -207,11 +206,11 @@ impl Renderer for WebGLRenderer {
         for &(ref name, ref uniform) in program.uniforms() {
             let attr = webgl::get_uniform_location(program.handle(), name);
             match uniform {
-                &Uniform::Vec2(gl_vec2) => webgl::uniform_2f(&attr, gl_vec2.0, gl_vec2.1),
+                &Uniform::Vec2(gl_vec2) => webgl::uniform2f(&attr, gl_vec2.0, gl_vec2.1),
                 &Uniform::Texture(ref gl_texture) => {
                     webgl::active_texture(webgl::TEXTURE0 + texture_index);
                     webgl::bind_texture(webgl::TEXTURE_2D, gl_texture.handle());
-                    webgl::uniform_1i(&attr, texture_index as GLint);
+                    webgl::uniform1i(&attr, texture_index as GLint);
                     texture_index += 1;
                 }
             }
@@ -220,35 +219,42 @@ impl Renderer for WebGLRenderer {
         // define vertex format
         let mut step = 0;
         for (attr_name, attr_count, attr_type) in V::attributes() {
-            let attr = webgl::get_attrib_location(program.handle(), &attr_name)?;
-            webgl::enable_vertex_attrib_array(attr);
+            let attr = webgl::get_attrib_location(program.handle(), &attr_name);
+            if attr < 0 {
+                return Err(format_err!(
+                    "could not find location of attribute {}",
+                    attr_name
+                ));
+            }
+            let attr = attr as u32;
+            webgl::enable_vertex_attrib_array(attr as u32);
             match attr_type {
                 VertexAttributeType::Float => {
                     webgl::vertex_attrib_pointer(
                         attr,
-                        attr_count,
+                        attr_count as GLsizei,
                         webgl::FLOAT,
                         false,
-                        V::stride(),
+                        V::stride() as GLsizei,
                         step,
                     );
                 }
                 VertexAttributeType::Unsigned => {
                     webgl::vertex_attrib_pointer(
                         attr,
-                        attr_count,
+                        attr_count as GLsizei,
                         webgl::UNSIGNED_INT,
                         false,
-                        V::stride(),
+                        V::stride() as GLsizei,
                         step,
                     );
                 }
             }
 
-            step += attr_count * attr_type.size();
+            step += (attr_count * attr_type.size()) as GLsizei;
         }
 
-        webgl::draw_arrays(webgl::TRIANGLES, 0, vertices.len());
+        webgl::draw_arrays(webgl::TRIANGLES, 0, vertices.len() as GLsizei);
 
         Ok(())
     }

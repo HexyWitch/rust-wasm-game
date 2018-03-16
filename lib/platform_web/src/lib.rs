@@ -16,6 +16,7 @@ pub mod renderer_webgl;
 use platform::{Application, PlatformApi};
 use platform::input::Input;
 use window::Window;
+use js::webgl;
 
 use self::console_writer::ConsoleWriter;
 
@@ -30,12 +31,12 @@ pub fn run<T: Application + 'static>() {
     io::set_print(Some(Box::new(ConsoleWriter::new())));
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
-    js::webgl::gl_load_context("window");
+    let mut window = Window::new("window").unwrap();
+    webgl::set_context(window.gl_context());
+
+    let mut event_dispatch = window.events();
     let mut application = T::new().unwrap();
     let mut input = Input::new();
-
-    let mut window = Window::new("window").unwrap();
-    let mut event_dispatch = window.events();
     window.set_main_loop(move || {
         let events = event_dispatch.input_events();
         input.update(&events);
