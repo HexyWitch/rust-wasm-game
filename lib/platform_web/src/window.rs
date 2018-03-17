@@ -4,7 +4,7 @@ use std::mem;
 
 use failure::Error;
 
-use js::{InputHandler as JsInputHandler, MainLoopCallback, Window as JsWindow};
+use js::window::{InputHandler as JsInputHandler, MainLoopCallback, Window as JsWindow};
 use js::webgl;
 use platform::input::InputEvent;
 
