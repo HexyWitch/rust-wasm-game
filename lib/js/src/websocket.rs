@@ -1,114 +1,71 @@
-use std::ffi::CString;
-use std::os::raw::{c_char, c_void};
 use wasm_bindgen::prelude::*;
 
-type WebSocketOnmessageCallback = unsafe extern "C" fn(*const u8, usize, *mut c_void);
-type WebSocketOnopenCallback = unsafe extern "C" fn(*mut c_void);
+#[wasm_bindgen(module = "./websocket")]
+extern "C" {
+    pub type Binding;
+
+    #[wasm_bindgen(method)]
+    pub fn send(this: &Binding, data: Vec<u8>);
+    #[wasm_bindgen(method)]
+    pub fn close(this: &Binding, code: i32, reason: &str);
+}
+
+#[wasm_bindgen(module = "./websocket")]
+extern "C" {
+    pub fn connect(url: &str, event_handler: EventHandler) -> Binding;
+}
 
 #[wasm_bindgen]
-extern "C" {
-    fn js_websocket_create(url_ptr: *const c_char, url_len: usize) -> u32;
-    fn js_websocket_send(handle: u32, data_ptr: *const u8);
-    fn js_websocket_onmessage(
-        handle: u32,
-        fn_ptr: *const WebSocketOnmessageCallback,
-        arg: *mut c_void,
-    );
-    fn js_websocket_onopen(handle: u32, fn_ptr: *const WebSocketOnopenCallback, arg: *mut c_void);
-    fn js_websocket_close(handle: u32, code: i32, reason_ptr: *const c_char, reason_len: usize);
+pub struct EventHandler {
+    on_message: Option<Box<FnMut(Vec<u8>) + 'static>>,
+    on_open: Option<Box<FnMut() + 'static>>,
+    on_close: Option<Box<FnMut() + 'static>>,
+    on_error: Option<Box<FnMut() + 'static>>,
 }
 
-pub type SocketId = u32;
-
-pub fn websocket_create(url: &str) -> SocketId {
-    let c_url = CString::new(url).unwrap();
-    unsafe { js_websocket_create(c_url.as_ptr() as *const c_char, c_url.as_bytes().len()) }
-}
-
-pub struct CallbackHandle<T>(*mut T);
-
-impl<T> CallbackHandle<T> {
-    fn new(callback: T) -> CallbackHandle<T> {
-        let cb_ptr = Box::into_raw(Box::new(callback));
-        CallbackHandle(cb_ptr)
+#[wasm_bindgen]
+impl EventHandler {
+    pub fn on_message(&mut self, data: Vec<u8>) {
+        if let Some(ref mut on_message) = self.on_message {
+            (*on_message)(data);
+        }
     }
-
-    fn ptr(&self) -> *mut T {
-        self.0
+    pub fn on_open(&mut self) {
+        if let Some(ref mut on_open) = self.on_open {
+            (*on_open)();
+        }
     }
-}
-
-impl<T> Drop for CallbackHandle<T> {
-    fn drop(&mut self) {
-        unsafe {
-            let _callback = Box::<T>::from_raw(self.0);
+    pub fn on_close(&mut self) {
+        if let Some(ref mut on_close) = self.on_close {
+            (*on_close)();
+        }
+    }
+    pub fn on_error(&mut self) {
+        if let Some(ref mut on_error) = self.on_error {
+            (*on_error)();
         }
     }
 }
 
-// sets a websocket's onopen callback, returns a CallbackHandle which must live as long as the socket
-pub fn websocket_onopen<T>(socket: SocketId, callback: T) -> CallbackHandle<T>
-where
-    T: Fn() + 'static,
-{
-    pub unsafe extern "C" fn wrapper<T>(arg: *mut c_void)
-    where
-        T: Fn(),
-    {
-        let callback = arg as *mut T;
-        (*callback)();
+impl EventHandler {
+    pub fn new() -> EventHandler {
+        EventHandler {
+            on_message: None,
+            on_open: None,
+            on_error: None,
+            on_close: None,
+        }
     }
-
-    let handle = CallbackHandle::new(callback);
-    unsafe {
-        js_websocket_onopen(
-            socket,
-            wrapper::<T> as *const WebSocketOnopenCallback,
-            handle.ptr() as *mut c_void,
-        );
+    pub fn set_on_message<T: FnMut(Vec<u8>) + 'static>(&mut self, f: T) {
+        self.on_message = Some(Box::new(f));
     }
-    handle
-}
-
-// sets a websocket's onmessage callback, returns a CallbackHandle which must live as long as the socket
-pub fn websocket_onmessage<T>(socket: SocketId, callback: T) -> CallbackHandle<T>
-where
-    T: Fn(Vec<u8>) + 'static,
-{
-    pub unsafe extern "C" fn wrapper<T>(data_ptr: *const u8, data_len: usize, arg: *mut c_void)
-    where
-        T: Fn(Vec<u8>),
-    {
-        // This relies on the memory being previously allocated using the exported alloc function
-        // which creates a Vec
-        let data = Vec::from_raw_parts(data_ptr as *mut u8, data_len, data_len);
-        let callback = arg as *mut T;
-        (*callback)(data);
+    pub fn set_on_open<T: FnMut() + 'static>(&mut self, f: T) {
+        self.on_open = Some(Box::new(f));
     }
-
-    let handle = CallbackHandle::new(callback);
-    unsafe {
-        js_websocket_onmessage(
-            socket,
-            wrapper::<T> as *const WebSocketOnmessageCallback,
-            handle.ptr() as *mut c_void,
-        );
+    pub fn set_on_error<T: FnMut() + 'static>(&mut self, f: T) {
+        self.on_error = Some(Box::new(f));
     }
-    handle
-}
-
-pub fn websocket_send(handle: SocketId, data: &[u8]) {
-    unsafe { js_websocket_send(handle, data.as_ptr()) }
-}
-
-pub fn websocket_close(handle: SocketId, code: i32, reason: &str) {
-    let c_reason = CString::new(reason).unwrap();
-    unsafe {
-        js_websocket_close(
-            handle,
-            code,
-            c_reason.as_ptr() as *const c_char,
-            c_reason.as_bytes().len(),
-        )
+    pub fn set_on_close<T: FnMut() + 'static>(&mut self, f: T) {
+        self.on_close = Some(Box::new(f));
     }
 }

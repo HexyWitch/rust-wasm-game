@@ -6,12 +6,12 @@ extern crate wasm_bindgen;
 
 use wasm_bindgen::prelude::*;
 
-use game::ClientServerApplication;
+use game::ClientApplication;
 
 use platform_web::WebPlatformApi;
 
 pub fn main() {
-    platform_web::run::<ClientServerApplication<WebPlatformApi>>();
+    platform_web::run::<ClientApplication<WebPlatformApi>>();
 }
 
 #[wasm_bindgen]

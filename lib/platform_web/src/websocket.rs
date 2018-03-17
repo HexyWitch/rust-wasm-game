@@ -1,49 +1,46 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::any::Any;
 use failure::Error;
 
 use js::websocket;
-use js::websocket::SocketId;
-use platform::websocket::{Message, WebSocket};
+use platform::websocket::WebSocket as WebsocketTrait;
 
-pub struct JsWebSocket {
-    handle: SocketId,
-    open: Rc<RefCell<bool>>,
+type Message = Vec<u8>;
+
+pub struct Websocket {
+    js_socket: websocket::Binding,
+
     incoming: Rc<RefCell<Vec<Message>>>,
-
-    onopen_handle: Box<Any>,
-    onmessage_handle: Box<Any>,
+    open: Rc<RefCell<bool>>,
 }
 
-impl Drop for JsWebSocket {
+impl Drop for Websocket {
     fn drop(&mut self) {
-        websocket::websocket_close(self.handle, 1000, "WebSocket dropped");
+        if self.open() {
+            self.js_socket.close(1000, "WebSocket dropped");
+        }
     }
 }
 
-impl WebSocket for JsWebSocket {
+impl WebsocketTrait for Websocket {
     fn connect(url: &str) -> Result<Self, Error> {
-        let handle = websocket::websocket_create(url);
+        let mut event_handler = websocket::EventHandler::new();
 
         let open = Rc::new(RefCell::new(false));
         let open_cb = Rc::clone(&open);
-        let onopen_handle = websocket::websocket_onopen(handle, move || {
+        event_handler.set_on_open(move || {
             *open_cb.borrow_mut() = true;
         });
 
         let incoming = Rc::new(RefCell::new(Vec::new()));
         let incoming_cb = Rc::clone(&incoming);
-        let onmessage_handle =
-            websocket::websocket_onmessage(handle, move |msg| incoming_cb.borrow_mut().push(msg));
+        event_handler.set_on_message(move |msg| incoming_cb.borrow_mut().push(msg));
 
-        Ok(JsWebSocket {
-            handle: handle,
-            open: open,
-            incoming: incoming,
-
-            onopen_handle: Box::new(onopen_handle),
-            onmessage_handle: Box::new(onmessage_handle),
+        let js_socket = websocket::connect(url, event_handler);
+        Ok(Websocket {
+            js_socket,
+            incoming,
+            open,
         })
     }
 
@@ -51,12 +48,12 @@ impl WebSocket for JsWebSocket {
         *self.open.borrow()
     }
 
-    fn send(&mut self, data: Vec<u8>) -> Result<(), Error> {
+    fn send(&mut self, data: Message) -> Result<(), Error> {
         let open = *self.open.borrow();
         if !open {
             return Err(format_err!("error trying to send on unopened socket"));
         }
-        websocket::websocket_send(self.handle, &data);
+        self.js_socket.send(data);
         Ok(())
     }
 

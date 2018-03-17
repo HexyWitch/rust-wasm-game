@@ -24,7 +24,7 @@ pub struct WebPlatformApi();
 
 impl PlatformApi for WebPlatformApi {
     type Renderer = renderer_webgl::WebGLRenderer;
-    type Socket = websocket::JsWebSocket;
+    type Socket = websocket::Websocket;
 }
 
 pub fn run<T: Application + 'static>() {
