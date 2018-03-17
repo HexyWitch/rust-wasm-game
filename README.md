@@ -20,7 +20,7 @@ The [wasm-build](https://github.com/Healthire/wasm-build) tool automates a bunch
 1. Install [yarn](https://yarnpkg.com/en/) (required by wasm-build for running webpack)
 2. Add the wasm32-unknown-unkown target, install wasm-build, and build the project
 ```
-$ rustup add target wasm32-unknown-unknown
+$ rustup target add wasm32-unknown-unknown
 $ cargo install --git https://github.com/Healthire/wasm-build
 $ wasm-build --features web --bin client-web
 ```
