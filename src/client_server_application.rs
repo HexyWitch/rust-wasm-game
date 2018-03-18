@@ -28,7 +28,7 @@ where
         server.add_player(client_id)?;
 
         Ok(ClientServerApplication {
-            renderer: GameRenderer::<A::Renderer>::new((640.0, 480.0))?,
+            renderer: GameRenderer::<A::Renderer>::new()?,
             server: server,
             client_id: client_id,
             client: client,

@@ -39,7 +39,7 @@ impl<R> GameRenderer<R>
 where
     R: Renderer,
 {
-    pub fn new(screen_size: (f32, f32)) -> Result<GameRenderer<R>, Error>
+    pub fn new() -> Result<GameRenderer<R>, Error>
     where
         R: Renderer,
     {
@@ -49,7 +49,11 @@ where
 
         let texture = Rc::new(R::create_texture(texture_size)?);
 
-        program.set_uniform("screen_size", Uniform::Vec2(screen_size));
+        let screen_size = R::screen_size();
+        program.set_uniform(
+            "screen_size",
+            Uniform::Vec2((screen_size.0 as f32, screen_size.1 as f32)),
+        );
         program.set_uniform(
             "texture_size",
             Uniform::Vec2((texture_size.0 as f32, texture_size.1 as f32)),

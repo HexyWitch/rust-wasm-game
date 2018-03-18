@@ -21,7 +21,7 @@ where
 {
     fn new() -> Result<Self, Error> {
         Ok(ClientApplication {
-            renderer: GameRenderer::<A::Renderer>::new((640.0, 480.0))?,
+            renderer: GameRenderer::<A::Renderer>::new()?,
             socket: A::Socket::connect("ws://127.0.0.1:2794")?,
             client: GameClient::new()?,
         })

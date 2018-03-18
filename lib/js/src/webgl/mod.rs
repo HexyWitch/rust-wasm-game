@@ -28,6 +28,9 @@ extern "C" {
     pub fn clear_color(r: GLclampf, g: GLclampf, b: GLclampf, a: GLclampf);
     pub fn clear(mask: GLbitfield);
 
+    pub fn drawing_buffer_width() -> i32;
+    pub fn drawing_buffer_height() -> i32;
+
     pub fn create_texture() -> JsValue;
     pub fn delete_texture(texture: &JsValue);
     pub fn bind_texture(target: GLenum, texture: &JsValue);

@@ -9,6 +9,7 @@ export function set_context(context) {
     gl_context = context.gl;
 }
 
+
 export function enable(capability) {
     gl_context.enable(capability);
 }
@@ -23,6 +24,13 @@ export function clear_color(r, g, b, a) {
 }
 export function clear(mask) {
     gl_context.clear(mask);
+}
+
+export function drawing_buffer_width() {
+    return gl_context.drawingBufferWidth;
+}
+export function drawing_buffer_height() {
+    return gl_context.drawingBufferHeight;
 }
 
 export function create_texture() {

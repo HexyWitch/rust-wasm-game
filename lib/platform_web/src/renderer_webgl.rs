@@ -166,6 +166,11 @@ impl Renderer for WebGLRenderer {
     type Program = WebGLProgram;
     type VertexBuffer = WebGLBuffer; // (vertex array, vertex buffer)
 
+    fn screen_size() -> (i32, i32) {
+        let width = webgl::drawing_buffer_width();
+        let height = webgl::drawing_buffer_height();
+        (width, height)
+    }
     fn create_vertex_buffer() -> Result<Self::VertexBuffer, Error> {
         let vbo = WebGLBuffer::new(webgl::create_buffer());
 

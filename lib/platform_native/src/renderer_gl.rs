@@ -130,6 +130,13 @@ impl Renderer for GLRenderer {
     type Program = GLProgram;
     type VertexBuffer = (GLuint, GLuint); // (vertex array, vertex buffer)
 
+    fn screen_size() -> (i32, i32) {
+        let mut rect: [GLint; 4] = [0; 4];
+        unsafe {
+            gl::GetIntegerv(gl::VIEWPORT, rect.as_mut_ptr() as *mut GLint);
+        }
+        (rect[2], rect[3])
+    }
     fn create_vertex_buffer() -> Result<(GLuint, GLuint), Error> {
         let mut vao = 0;
         let mut vbo = 0;

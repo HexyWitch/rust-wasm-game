@@ -47,6 +47,7 @@ pub trait Renderer {
     type Program: Program<Self::Texture>;
     type VertexBuffer;
 
+    fn screen_size() -> (i32, i32);
     fn create_vertex_buffer() -> Result<Self::VertexBuffer, Error>;
     fn create_program(vs: &str, fs: &str) -> Result<Self::Program, Error>;
     fn create_texture(size: (u32, u32)) -> Result<Self::Texture, Error>;
