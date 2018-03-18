@@ -22,15 +22,15 @@ The [wasm-build](https://github.com/Healthire/wasm-build) tool automates a bunch
 ```
 $ rustup target add wasm32-unknown-unknown
 $ cargo install --git https://github.com/Healthire/wasm-build
-$ wasm-build --features web --bin client-web
+$ wasm-build build --features web --bin client-web
 ```
 
 wasm-build will ask to install the tools required for generating javascript bindings and packing up the project for web.
 
+The packaged application will be output to ./target/wasm-build/client-web/dist
+
 ### Running
 
-The packed build is found in `./target/wasm-build/client-web/dist` and must be served from an HTTP server. The npm [serve](https://www.npmjs.com/package/serve) application is useful for this.
 ```
-$ serve ./target/wasm-build/client-web/dist
+$ wasm-build run --features web --bin client-web
 ```
-Then visit `http://localhost:5000/client-web.html` in your favorite webassembly-supporting web browser!
