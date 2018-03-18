@@ -10,7 +10,6 @@ export function connect(url, event_handler) {
     }
     socket.onerror = function (event) {
         event_handler.on_error();
-        event_handler.free();
     }
     socket.onclose = function (event) {
         event_handler.on_close();
