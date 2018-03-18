@@ -13,21 +13,28 @@ cargo run --bin client-native --features native
 
 Uses [wasm-bindgen](https://github.com/alexcrichton/wasm-bindgen) for generating javascript bindings.
 
-### Building
-
-The [wasm-build](https://github.com/Healthire/wasm-build) tool automates a bunch of steps required to build the game for web.
+### Setup
 
 1. Install [yarn](https://yarnpkg.com/en/) (required by wasm-build for running webpack)
-2. Add the wasm32-unknown-unkown target, install wasm-build, and build the project
+2. Set your default toolchain to nightly
 ```
-$ rustup target add wasm32-unknown-unknown
+rustup default nightly
+```
+3. Add the wasm32-unknown-unknown target
+```
+rustup target add wasm32-unknown-unknown
+```
+4. Install wasm-build
+```
 $ cargo install --git https://github.com/Healthire/wasm-build
+```
+
+### Building
+```
 $ wasm-build build --features web --bin client-web
 ```
 
-wasm-build will ask to install the tools required for generating javascript bindings and packing up the project for web.
-
-The packaged application will be output to ./target/wasm-build/client-web/dist
+The packaged application will be output to ./target/wasm-build/client-web/dist/client-web.js
 
 ### Running
 
