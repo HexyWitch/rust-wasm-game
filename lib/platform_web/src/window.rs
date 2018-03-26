@@ -1,11 +1,12 @@
-use std::rc::Rc;
 use std::cell::RefCell;
 use std::mem;
+use std::rc::Rc;
 
 use failure::Error;
 
-use js::window::{InputHandler as JsInputHandler, MainLoopCallback, Window as JsWindow};
+use js;
 use js::webgl;
+use js::window::{CanvasWindow, InputHandler as JsInputHandler, MainLoopCallback};
 use platform::input::InputEvent;
 
 use input::{to_key, to_mouse_button};
@@ -13,7 +14,7 @@ use input::{to_key, to_mouse_button};
 type InputEvents = Rc<RefCell<Vec<InputEvent>>>;
 
 pub struct Window {
-    js_window: JsWindow,
+    js_window: CanvasWindow,
     input_events: InputEvents,
 }
 
@@ -59,7 +60,7 @@ impl Window {
         let input_events = Rc::new(RefCell::new(Vec::new()));
         let handler = input_handler(&input_events);
         Ok(Window {
-            js_window: JsWindow::new(canvas_id, handler),
+            js_window: js::window::create_canvas_window(canvas_id, handler),
             input_events,
         })
     }
@@ -69,11 +70,13 @@ impl Window {
     }
 
     pub fn set_main_loop<T: FnMut() + 'static>(self, f: T) {
-        self.js_window.set_main_loop(MainLoopCallback(Box::new(f)));
+        js::window::set_main_loop(MainLoopCallback(Box::new(f)));
     }
+}
 
-    pub fn gl_context(&self) -> webgl::GlContext {
-        self.js_window.gl_context()
+impl Drop for Window {
+    fn drop(&mut self) {
+        //js::window::delete_canvas_window(&self.js_window);
     }
 }
 

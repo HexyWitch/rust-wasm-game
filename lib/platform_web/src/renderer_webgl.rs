@@ -23,7 +23,7 @@ impl WebGLVertexShader {
 
 impl Drop for WebGLVertexShader {
     fn drop(&mut self) {
-        webgl::delete_shader(self.handle())
+        webgl::gl_delete_shader(self.handle())
     }
 }
 
@@ -44,7 +44,7 @@ impl WebGLFragmentShader {
 
 impl Drop for WebGLFragmentShader {
     fn drop(&mut self) {
-        webgl::delete_shader(self.handle())
+        webgl::gl_delete_shader(self.handle())
     }
 }
 
@@ -61,7 +61,7 @@ impl WebGLBuffer {
 
 impl Drop for WebGLBuffer {
     fn drop(&mut self) {
-        webgl::delete_buffer(&self.0);
+        webgl::gl_delete_buffer(&self.0);
     }
 }
 
@@ -89,7 +89,7 @@ impl WebGLProgram {
 
 impl Drop for WebGLProgram {
     fn drop(&mut self) {
-        webgl::delete_program(self.handle())
+        webgl::gl_delete_program(self.handle())
     }
 }
 
@@ -106,20 +106,20 @@ pub struct WebGLTexture(webgl::Texture);
 
 impl WebGLTexture {
     fn new(size: (u32, u32)) -> WebGLTexture {
-        let handle = webgl::create_texture();
-        webgl::bind_texture(webgl::TEXTURE_2D, &handle);
-        webgl::tex_parameter_i(
+        let handle = webgl::gl_create_texture();
+        webgl::gl_bind_texture(webgl::TEXTURE_2D, &handle);
+        webgl::gl_tex_parameter_i(
             webgl::TEXTURE_2D,
             webgl::TEXTURE_MIN_FILTER,
             webgl::LINEAR as GLint,
         );
-        webgl::tex_parameter_i(
+        webgl::gl_tex_parameter_i(
             webgl::TEXTURE_2D,
             webgl::TEXTURE_MAG_FILTER,
             webgl::LINEAR as GLint,
         );
 
-        webgl::tex_image_2d_empty(
+        webgl::gl_tex_image_2d_empty(
             webgl::TEXTURE_2D,
             0,
             webgl::RGBA,
@@ -138,14 +138,14 @@ impl WebGLTexture {
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
-        webgl::delete_texture(self.handle())
+        webgl::gl_delete_texture(self.handle())
     }
 }
 
 impl Texture for WebGLTexture {
     fn set_region(&self, image: &Image, offset: (u32, u32)) {
-        webgl::bind_texture(webgl::TEXTURE_2D, self.handle());
-        webgl::tex_sub_image_2d_u8(
+        webgl::gl_bind_texture(webgl::TEXTURE_2D, self.handle());
+        webgl::gl_tex_sub_image_2d_u8(
             webgl::TEXTURE_2D,
             0,
             offset.0 as GLint,
@@ -167,12 +167,12 @@ impl Renderer for WebGLRenderer {
     type VertexBuffer = WebGLBuffer; // (vertex array, vertex buffer)
 
     fn screen_size() -> (i32, i32) {
-        let width = webgl::drawing_buffer_width();
-        let height = webgl::drawing_buffer_height();
+        let width = webgl::gl_drawing_buffer_width();
+        let height = webgl::gl_drawing_buffer_height();
         (width, height)
     }
     fn create_vertex_buffer() -> Result<Self::VertexBuffer, Error> {
-        let vbo = WebGLBuffer::new(webgl::create_buffer());
+        let vbo = WebGLBuffer::new(webgl::gl_create_buffer());
 
         Ok(vbo)
     }
@@ -191,31 +191,31 @@ impl Renderer for WebGLRenderer {
         program: &Self::Program,
         vertices: &Vec<V>,
     ) -> Result<(), Error> {
-        webgl::blend_func(webgl::SRC_ALPHA, webgl::ONE_MINUS_SRC_ALPHA);
-        webgl::enable(webgl::BLEND);
+        webgl::gl_blend_func(webgl::SRC_ALPHA, webgl::ONE_MINUS_SRC_ALPHA);
+        webgl::gl_enable(webgl::BLEND);
 
         // push vertex data
-        webgl::bind_buffer(webgl::ARRAY_BUFFER, vertex_buffer.handle());
+        webgl::gl_bind_buffer(webgl::ARRAY_BUFFER, vertex_buffer.handle());
         unsafe {
             let data = ::std::slice::from_raw_parts(
                 vertices.as_ptr() as *const u8,
                 vertices.len() * V::stride(),
             );
-            webgl::buffer_data(webgl::ARRAY_BUFFER, data, webgl::STATIC_DRAW);
+            webgl::gl_buffer_data(webgl::ARRAY_BUFFER, data, webgl::STATIC_DRAW);
         }
 
-        webgl::use_program(program.handle());
+        webgl::gl_use_program(program.handle());
 
         // set uniforms
         let mut texture_index = 0;
         for &(ref name, ref uniform) in program.uniforms() {
-            let attr = webgl::get_uniform_location(program.handle(), name);
+            let attr = webgl::gl_get_uniform_location(program.handle(), name);
             match uniform {
-                &Uniform::Vec2(gl_vec2) => webgl::uniform2f(&attr, gl_vec2.0, gl_vec2.1),
+                &Uniform::Vec2(gl_vec2) => webgl::gl_uniform2f(&attr, gl_vec2.0, gl_vec2.1),
                 &Uniform::Texture(ref gl_texture) => {
-                    webgl::active_texture(webgl::TEXTURE0 + texture_index);
-                    webgl::bind_texture(webgl::TEXTURE_2D, gl_texture.handle());
-                    webgl::uniform1i(&attr, texture_index as GLint);
+                    webgl::gl_active_texture(webgl::TEXTURE0 + texture_index);
+                    webgl::gl_bind_texture(webgl::TEXTURE_2D, gl_texture.handle());
+                    webgl::gl_uniform1i(&attr, texture_index as GLint);
                     texture_index += 1;
                 }
             }
@@ -224,7 +224,7 @@ impl Renderer for WebGLRenderer {
         // define vertex format
         let mut step = 0;
         for (attr_name, attr_count, attr_type) in V::attributes() {
-            let attr = webgl::get_attrib_location(program.handle(), &attr_name);
+            let attr = webgl::gl_get_attrib_location(program.handle(), &attr_name);
             if attr < 0 {
                 return Err(format_err!(
                     "could not find location of attribute {}",
@@ -232,10 +232,10 @@ impl Renderer for WebGLRenderer {
                 ));
             }
             let attr = attr as u32;
-            webgl::enable_vertex_attrib_array(attr as u32);
+            webgl::gl_enable_vertex_attrib_array(attr as u32);
             match attr_type {
                 VertexAttributeType::Float => {
-                    webgl::vertex_attrib_pointer(
+                    webgl::gl_vertex_attrib_pointer(
                         attr,
                         attr_count as GLsizei,
                         webgl::FLOAT,
@@ -245,7 +245,7 @@ impl Renderer for WebGLRenderer {
                     );
                 }
                 VertexAttributeType::Unsigned => {
-                    webgl::vertex_attrib_pointer(
+                    webgl::gl_vertex_attrib_pointer(
                         attr,
                         attr_count as GLsizei,
                         webgl::UNSIGNED_INT,
@@ -259,41 +259,41 @@ impl Renderer for WebGLRenderer {
             step += (attr_count * attr_type.size()) as GLsizei;
         }
 
-        webgl::draw_arrays(webgl::TRIANGLES, 0, vertices.len() as GLsizei);
+        webgl::gl_draw_arrays(webgl::TRIANGLES, 0, vertices.len() as GLsizei);
 
         Ok(())
     }
 
     fn clear(color: Option<(f32, f32, f32, f32)>) {
         let (r, g, b, a) = color.unwrap_or((0.0, 0.0, 0.0, 1.0));
-        webgl::clear_color(r, g, b, a);
-        webgl::clear(webgl::COLOR_BUFFER_BIT);
+        webgl::gl_clear_color(r, g, b, a);
+        webgl::gl_clear(webgl::COLOR_BUFFER_BIT);
     }
 }
 
 fn compile_shader(src: &str, t: GLenum) -> Result<webgl::Shader, Error> {
     let shader;
-    shader = webgl::create_shader(t);
-    webgl::shader_source(&shader, src);
-    webgl::compile_shader(&shader);
+    shader = webgl::gl_create_shader(t);
+    webgl::gl_shader_source(&shader, src);
+    webgl::gl_compile_shader(&shader);
 
-    let status = webgl::get_shader_parameter(&shader, webgl::COMPILE_STATUS);
+    let status = webgl::gl_get_shader_parameter(&shader, webgl::COMPILE_STATUS);
     if status != (webgl::TRUE as GLint) {
-        let log = webgl::get_shader_info_log(&shader);
+        let log = webgl::gl_get_shader_info_log(&shader);
         return Err(format_err!("Error compiling shader: {}", log));
     }
     Ok(shader)
 }
 
 fn link_program(vs: &WebGLVertexShader, fs: &WebGLFragmentShader) -> Result<webgl::Program, Error> {
-    let program = webgl::create_program();
-    webgl::attach_shader(&program, vs.handle());
-    webgl::attach_shader(&program, fs.handle());
-    webgl::link_program(&program);
+    let program = webgl::gl_create_program();
+    webgl::gl_attach_shader(&program, vs.handle());
+    webgl::gl_attach_shader(&program, fs.handle());
+    webgl::gl_link_program(&program);
 
-    let status = webgl::get_program_parameter(&program, webgl::LINK_STATUS);
+    let status = webgl::gl_get_program_parameter(&program, webgl::LINK_STATUS);
     if status != (webgl::TRUE as GLint) {
-        let log = webgl::get_program_info_log(&program);
+        let log = webgl::gl_get_program_info_log(&program);
         return Err(format_err!("Error linking program: {}", log));
     }
     Ok(program)

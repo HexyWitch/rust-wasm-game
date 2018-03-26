@@ -7,16 +7,16 @@ extern crate platform;
 
 use std::io;
 
-mod input;
 mod console_writer;
-mod window;
-pub mod websocket;
+mod input;
 pub mod renderer_webgl;
+pub mod websocket;
+mod window;
 
-use platform::{Application, PlatformApi};
-use platform::input::Input;
-use window::Window;
 use js::webgl;
+use platform::input::Input;
+use platform::{Application, PlatformApi};
+use window::Window;
 
 use self::console_writer::ConsoleWriter;
 
@@ -28,11 +28,14 @@ impl PlatformApi for WebPlatformApi {
 }
 
 pub fn run<T: Application + 'static>() {
+    js::bootstrap();
+
     io::set_print(Some(Box::new(ConsoleWriter::new())));
     io::set_panic(Some(Box::new(ConsoleWriter::new())));
 
-    let mut window = Window::new("window").unwrap();
-    webgl::set_context(window.gl_context());
+    let canvas_id = "window";
+    let mut window = Window::new(canvas_id).unwrap();
+    webgl::set_global_context(webgl::get_canvas_context(canvas_id));
 
     let mut event_dispatch = window.events();
     let mut application = T::new().unwrap();

@@ -1,22 +1,17 @@
 use wasm_bindgen::prelude::*;
 
-use webgl;
+pub fn bootstrap() {
+    use super::eval;
+    eval(include_str!("../js/window.js"));
+}
 
-#[wasm_bindgen(module = "./window")]
+pub type CanvasWindow = JsValue;
+
+#[wasm_bindgen]
 extern "C" {
-    pub type Window;
-
-    #[wasm_bindgen(constructor)]
-    pub fn new(canvas_id: &str, input_handler: InputHandler) -> Window;
-
-    #[wasm_bindgen(method)]
-    pub fn set_main_loop(this: &Window, cb: MainLoopCallback);
-
-    #[wasm_bindgen(method)]
-    pub fn gl_context(this: &Window) -> webgl::GlContext;
-
-    #[wasm_bindgen(static = Window)]
-    pub fn log(msg: &str);
+    pub fn create_canvas_window(canvas_id: &str, input_handler: InputHandler) -> CanvasWindow;
+    pub fn delete_canvas_window(window: &CanvasWindow);
+    pub fn set_main_loop(cb: MainLoopCallback);
 }
 
 #[wasm_bindgen]

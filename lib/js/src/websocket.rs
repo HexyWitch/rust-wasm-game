@@ -1,18 +1,23 @@
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "./websocket")]
-extern "C" {
-    pub type Binding;
-
-    #[wasm_bindgen(method)]
-    pub fn send(this: &Binding, data: Vec<u8>);
-    #[wasm_bindgen(method)]
-    pub fn close(this: &Binding, code: i32, reason: &str);
+pub fn bootstrap() {
+    use super::eval;
+    eval(include_str!("../js/websocket.js"));
 }
 
-#[wasm_bindgen(module = "./websocket")]
+#[wasm_bindgen]
 extern "C" {
-    pub fn connect(url: &str, event_handler: EventHandler) -> Binding;
+    pub type WebSocket;
+
+    #[wasm_bindgen(method)]
+    pub fn send(this: &WebSocket, data: Vec<u8>);
+    #[wasm_bindgen(method)]
+    pub fn close(this: &WebSocket, code: i32, reason: &str);
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn websocket_connect(url: &str, event_handler: EventHandler) -> WebSocket;
 }
 
 #[wasm_bindgen]

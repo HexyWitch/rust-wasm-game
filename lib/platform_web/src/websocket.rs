@@ -1,6 +1,6 @@
-use std::rc::Rc;
-use std::cell::RefCell;
 use failure::Error;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use js::websocket;
 use platform::websocket::WebSocket as WebsocketTrait;
@@ -8,7 +8,7 @@ use platform::websocket::WebSocket as WebsocketTrait;
 type Message = Vec<u8>;
 
 pub struct Websocket {
-    js_socket: websocket::Binding,
+    js_socket: websocket::WebSocket,
 
     incoming: Rc<RefCell<Vec<Message>>>,
     open: Rc<RefCell<bool>>,
@@ -36,7 +36,7 @@ impl WebsocketTrait for Websocket {
         let incoming_cb = Rc::clone(&incoming);
         event_handler.set_on_message(move |msg| incoming_cb.borrow_mut().push(msg));
 
-        let js_socket = websocket::connect(url, event_handler);
+        let js_socket = websocket::websocket_connect(url, event_handler);
         Ok(Websocket {
             js_socket,
             incoming,

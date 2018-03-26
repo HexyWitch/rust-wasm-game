@@ -1,4 +1,4 @@
-#![feature(proc_macro)]
+#![feature(proc_macro, wasm_import_module, wasm_custom_section)]
 #![allow(non_camel_case_types)]
 
 extern crate failure;
@@ -10,10 +10,18 @@ pub mod window;
 
 use wasm_bindgen::prelude::*;
 
+pub fn bootstrap() {
+    webgl::bootstrap();
+    websocket::bootstrap();
+    window::bootstrap();
+}
+
 #[wasm_bindgen]
 extern "C" {
     pub type console;
 
-    #[wasm_bindgen(static = console)]
+    #[wasm_bindgen(js_namespace = console)]
     pub fn log(s: &str);
+
+    pub fn eval(s: &str);
 }

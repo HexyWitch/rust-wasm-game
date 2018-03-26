@@ -5,4 +5,4 @@ authors = ["William Lundstedt <bananavice@gmail.com>"]
 
 [dependencies]
 failure = "*"
-wasm-bindgen = { git = 'https://github.com/Healthire/wasm-bindgen', rev = 'fn-args' }
+wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }
