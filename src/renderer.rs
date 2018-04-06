@@ -1,12 +1,12 @@
-use std::rc::Rc;
 use failure::Error;
+use std::rc::Rc;
 
-use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 use core::math::Vec2;
+use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
+use render_interface::RenderInterface;
 use texture_atlas::TextureAtlas;
 use texture_image::TextureImage;
-use render_interface::RenderInterface;
 
 static VERTEX_SHADER: &'static str = include_str!("../shaders/vertex.glsl");
 static FRAGMENT_SHADER: &'static str = include_str!("../shaders/fragment.glsl");

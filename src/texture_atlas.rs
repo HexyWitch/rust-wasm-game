@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use failure::Error;
+use std::collections::HashMap;
 
 use super::texture_image::TextureImage;
 

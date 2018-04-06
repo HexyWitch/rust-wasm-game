@@ -1,9 +1,0 @@
-[package]
-name = "game-bin"
-version = "0.1.0"
-authors = ["William Lundstedt <bananavice@gmail.com>"]
-
-[dependencies]
-game = { path = "../" }
-js = { path = "../lib/js/" }
-platform_web = { path = "../lib/platform_web/" }

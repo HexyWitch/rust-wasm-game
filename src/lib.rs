@@ -1,4 +1,3 @@
-#![feature(conservative_impl_trait)]
 extern crate bincode;
 #[macro_use]
 extern crate failure;
@@ -10,16 +9,16 @@ extern crate serde_derive;
 
 extern crate core;
 
-mod texture_atlas;
-mod texture_image;
-mod render_interface;
-mod ship;
-mod game_client;
-mod game_server;
-mod renderer;
-pub mod net;
 mod client_application;
 mod client_server_application;
+mod game_client;
+mod game_server;
+pub mod net;
+mod render_interface;
+mod renderer;
+mod ship;
+mod texture_atlas;
+mod texture_image;
 
 pub use client_application::ClientApplication;
 pub use client_server_application::ClientServerApplication;

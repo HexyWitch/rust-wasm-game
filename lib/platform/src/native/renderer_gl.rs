@@ -9,7 +9,7 @@ use std::os::raw::c_void;
 use failure::Error;
 
 use core::assets::Image;
-use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
+use rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 struct GLVertexShader {
     gl_ref: GLuint,

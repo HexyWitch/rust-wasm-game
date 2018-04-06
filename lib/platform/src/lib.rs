@@ -1,21 +1,30 @@
+#![feature(set_stdio)]
+
 extern crate core;
+#[macro_use]
 extern crate failure;
 
-pub mod websocket;
-pub mod rendering_api;
+#[cfg(target_arch = "wasm32")]
+extern crate js;
+
+#[cfg(not(target_arch = "wasm32"))]
+extern crate gl;
+#[cfg(not(target_arch = "wasm32"))]
+extern crate sdl2;
+#[cfg(not(target_arch = "wasm32"))]
+extern crate ws;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod native;
+#[cfg(not(target_arch = "wasm32"))]
+pub use native as platform;
+
+#[cfg(target_arch = "wasm32")]
+pub mod web;
+#[cfg(target_arch = "wasm32")]
+pub use web as platform;
+
 pub mod input;
+pub mod rendering_api;
 
-use failure::Error;
-
-pub trait PlatformApi {
-    type Renderer: rendering_api::Renderer;
-    type Socket: websocket::WebSocket;
-}
-
-use input::Input;
-pub trait Application {
-    fn new() -> Result<Self, Error>
-    where
-        Self: Sized;
-    fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error>;
-}
+pub use platform::*;

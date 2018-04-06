@@ -1,7 +1,7 @@
 use failure::Error;
 use bincode::{deserialize, serialize};
 
-use platform::{Application, PlatformApi};
+use platform;
 use platform::input::Input;
 
 use renderer::GameRenderer;
@@ -9,18 +9,15 @@ use game_client::GameClient;
 use game_server::GameServer;
 use net::{ClientId, Packet};
 
-pub struct ClientServerApplication<A: PlatformApi> {
-    renderer: GameRenderer<A::Renderer>,
+pub struct ClientServerApplication {
+    renderer: GameRenderer<platform::Renderer>,
     server: GameServer,
     client_id: ClientId,
     client: GameClient,
 }
 
-impl<A> Application for ClientServerApplication<A>
-where
-    A: PlatformApi,
-{
-    fn new() -> Result<Self, Error> {
+impl ClientServerApplication {
+    pub fn new() -> Result<Self, Error> {
         let client_id = 0;
         let client = GameClient::new()?;
 
@@ -28,14 +25,14 @@ where
         server.add_player(client_id)?;
 
         Ok(ClientServerApplication {
-            renderer: GameRenderer::<A::Renderer>::new()?,
+            renderer: GameRenderer::<platform::Renderer>::new()?,
             server: server,
             client_id: client_id,
             client: client,
         })
     }
 
-    fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
+    pub fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
         self.server.update(dt)?;
         let server_outgoing: Vec<u8> =
             serialize(&self.server.take_outgoing_packets(&self.client_id)?)?;

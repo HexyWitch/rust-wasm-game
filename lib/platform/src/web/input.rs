@@ -1,4 +1,4 @@
-use platform::input::{Key, MouseButton};
+use input::{Key, MouseButton};
 
 pub fn to_mouse_button(button: i8) -> MouseButton {
     match button {

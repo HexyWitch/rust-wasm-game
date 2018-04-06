@@ -1,7 +1,6 @@
 #![feature(proc_macro, wasm_import_module, wasm_custom_section)]
 #![allow(non_camel_case_types)]
 
-extern crate failure;
 extern crate wasm_bindgen;
 
 pub mod webgl;

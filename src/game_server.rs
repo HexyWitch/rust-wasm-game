@@ -6,8 +6,8 @@ use failure::Error;
 
 use core::math::Vec2;
 
-use ship::Ship;
 use net::{ClientId, Packet};
+use ship::Ship;
 
 pub struct PlayerInput {
     left: bool,

@@ -4,7 +4,7 @@ use js::webgl;
 use js::webgl::types::*;
 
 use core::assets::Image;
-use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
+use rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 struct WebGLVertexShader {
     handle: webgl::Shader,

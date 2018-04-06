@@ -1,16 +1,16 @@
-use std::rc::Rc;
-use std::f32;
-use std::collections::HashMap;
-use std::mem;
 use failure::Error;
+use std::collections::HashMap;
+use std::f32;
+use std::mem;
+use std::rc::Rc;
 
 use core::assets::image_from_png;
 use platform::input::{Input, Key};
 
-use texture_image::TextureImage;
+use net::Packet;
 use render_interface::RenderInterface;
 use ship::Ship;
-use net::Packet;
+use texture_image::TextureImage;
 
 pub struct Assets {
     pub ship: TextureImage,

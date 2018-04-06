@@ -4,9 +4,9 @@ use platform::input::Input;
 
 use core::math::Vec2;
 
-use render_interface::RenderInterface;
 use game_client::Assets;
 use net::ShipNetUpdate;
+use render_interface::RenderInterface;
 
 pub struct Ship {
     position: Vec2,

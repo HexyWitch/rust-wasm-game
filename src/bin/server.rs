@@ -1,21 +1,78 @@
 extern crate bincode;
+#[macro_use]
 extern crate failure;
 extern crate game;
-extern crate platform;
-extern crate platform_native;
 extern crate ws;
 
+use bincode::{deserialize, serialize};
+use failure::Error;
+use std::collections::HashMap;
+use std::mem;
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use bincode::{deserialize, serialize};
-
-use platform::websocket::WebSocket;
-use platform_native::websocket::Client;
 
 use game::GameServer;
 use game::net::{ClientId, Packet};
+
+type Message = Vec<u8>;
+
+pub struct ClientInner {
+    sender: RwLock<Option<ws::Sender>>,
+    incoming: Mutex<Vec<Message>>,
+    on_close: Box<Fn() + Send + Sync + 'static>,
+}
+
+#[derive(Clone)]
+pub struct Client(Arc<ClientInner>);
+
+impl Client {
+    fn with_sender<F>(sender: ws::Sender, on_close: F) -> Result<Self, Error>
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        Ok(Client(Arc::new(ClientInner {
+            sender: RwLock::new(Some(sender)),
+            incoming: Mutex::new(Vec::new()),
+            on_close: Box::new(on_close),
+        })))
+    }
+
+    fn set_sender(&self, sender: ws::Sender) {
+        *self.0.sender.write().unwrap() = Some(sender);
+    }
+
+    fn send(&mut self, data: Vec<u8>) -> Result<(), Error> {
+        if let Some(ref sender) = *self.0.sender.read().unwrap() {
+            sender.send(ws::Message::Binary(data))?;
+        } else {
+            return Err(format_err!("cannot send from uninitialized client"));
+        }
+        Ok(())
+    }
+
+    fn incoming(&mut self) -> Result<Vec<Message>, Error> {
+        Ok(mem::replace(
+            &mut *self.0.incoming.lock().unwrap(),
+            Vec::new(),
+        ))
+    }
+}
+
+impl ws::Handler for Client {
+    fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
+        let mut incoming = self.0.incoming.lock().unwrap();
+        match msg {
+            ws::Message::Binary(data) => incoming.push(data),
+            ws::Message::Text(str_msg) => incoming.push(str_msg.as_bytes().to_vec()),
+        }
+        Ok(())
+    }
+
+    fn on_close(&mut self, _code: ws::CloseCode, _reason: &str) {
+        (self.0.on_close)();
+    }
+}
 
 fn main() {
     let connected = Arc::new(Mutex::new(Vec::new()));

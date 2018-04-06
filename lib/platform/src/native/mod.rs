@@ -1,33 +1,25 @@
-extern crate core;
-#[macro_use]
-extern crate failure;
-extern crate gl;
-extern crate platform;
-extern crate sdl2;
-extern crate ws;
-
 mod input;
-pub mod websocket;
-pub mod renderer_gl;
+mod renderer_gl;
+mod websocket;
 
+use gl;
+use sdl2;
+
+use sdl2::event::Event;
+use sdl2::video::GLProfile;
 use std::thread;
 use std::time::Duration;
-use sdl2::video::GLProfile;
-use sdl2::event::Event;
 
-use platform::{Application, PlatformApi};
-use platform::input::{Input, InputEvent};
+use input::{Input, InputEvent};
 
-use input::{to_key, to_mouse_button};
+use failure::Error;
 
-pub struct NativePlatformApi();
+use self::input::{to_key, to_mouse_button};
 
-impl PlatformApi for NativePlatformApi {
-    type Renderer = renderer_gl::GLRenderer;
-    type Socket = websocket::Client;
-}
+pub use self::renderer_gl::GLRenderer as Renderer;
+pub use self::websocket::Websocket;
 
-pub fn run<T: Application + 'static>() {
+pub fn run<F: FnOnce() -> T, T: FnMut(f32, &Input) -> Result<(), Error> + 'static>(app_factory: F) {
     let sdl_context = sdl2::init().unwrap();
     let sdl_video = sdl_context.video().unwrap();
     {
@@ -49,8 +41,8 @@ pub fn run<T: Application + 'static>() {
     gl::load_with(|name| sdl_video.gl_get_proc_address(name) as *const _);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut application = T::new().unwrap();
     let mut input = Input::new();
+    let mut main_loop = app_factory();
     'main: loop {
         let mut input_events = Vec::new();
         for event in event_pump.poll_iter() {
@@ -85,7 +77,7 @@ pub fn run<T: Application + 'static>() {
         }
         input.update(&input_events);
 
-        application.update(0.016, &input).unwrap();
+        main_loop(0.016, &input).unwrap();
 
         window.gl_swap_window();
         thread::sleep(Duration::from_millis(16));

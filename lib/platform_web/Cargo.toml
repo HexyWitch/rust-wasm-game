@@ -1,9 +1,0 @@
-[package]
-name = "platform_web"
-version = "0.1.0"
-
-[dependencies]
-failure = "*"
-core = { path = "../core/" }
-js = { path = "../js/" }
-platform = { path = "../platform/" }

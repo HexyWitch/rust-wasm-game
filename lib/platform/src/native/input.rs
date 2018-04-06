@@ -1,6 +1,6 @@
 use sdl2::keyboard::Keycode as Sdl2Keycode;
 use sdl2::mouse::MouseButton as Sdl2MouseButton;
-use platform::input::{Key, MouseButton};
+use input::{Key, MouseButton};
 
 pub fn to_mouse_button(button: Sdl2MouseButton) -> MouseButton {
     match button {

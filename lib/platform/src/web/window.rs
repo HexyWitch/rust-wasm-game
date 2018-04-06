@@ -4,12 +4,11 @@ use std::rc::Rc;
 
 use failure::Error;
 
+use input::InputEvent;
 use js;
-use js::webgl;
 use js::window::{CanvasWindow, InputHandler as JsInputHandler, MainLoopCallback};
-use platform::input::InputEvent;
 
-use input::{to_key, to_mouse_button};
+use super::input::{to_key, to_mouse_button};
 
 type InputEvents = Rc<RefCell<Vec<InputEvent>>>;
 
@@ -76,7 +75,7 @@ impl Window {
 
 impl Drop for Window {
     fn drop(&mut self) {
-        //js::window::delete_canvas_window(&self.js_window);
+        js::window::delete_canvas_window(&self.js_window);
     }
 }
 

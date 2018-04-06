@@ -3,7 +3,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use js::websocket;
-use platform::websocket::WebSocket as WebsocketTrait;
 
 type Message = Vec<u8>;
 
@@ -14,16 +13,8 @@ pub struct Websocket {
     open: Rc<RefCell<bool>>,
 }
 
-impl Drop for Websocket {
-    fn drop(&mut self) {
-        if self.open() {
-            self.js_socket.close(1000, "WebSocket dropped");
-        }
-    }
-}
-
-impl WebsocketTrait for Websocket {
-    fn connect(url: &str) -> Result<Self, Error> {
+impl Websocket {
+    pub fn connect(url: &str) -> Result<Self, Error> {
         let mut event_handler = websocket::EventHandler::new();
 
         let open = Rc::new(RefCell::new(false));
@@ -44,11 +35,11 @@ impl WebsocketTrait for Websocket {
         })
     }
 
-    fn open(&self) -> bool {
+    pub fn open(&self) -> bool {
         *self.open.borrow()
     }
 
-    fn send(&mut self, data: Message) -> Result<(), Error> {
+    pub fn send(&mut self, data: Message) -> Result<(), Error> {
         let open = *self.open.borrow();
         if !open {
             return Err(format_err!("error trying to send on unopened socket"));
@@ -57,7 +48,15 @@ impl WebsocketTrait for Websocket {
         Ok(())
     }
 
-    fn incoming(&mut self) -> Result<Vec<Message>, Error> {
+    pub fn incoming(&mut self) -> Result<Vec<Message>, Error> {
         Ok(self.incoming.replace(Vec::new()))
+    }
+}
+
+impl Drop for Websocket {
+    fn drop(&mut self) {
+        if self.open() {
+            self.js_socket.close(1000, "WebSocket dropped");
+        }
     }
 }

@@ -1,7 +1,5 @@
-extern crate failure;
-extern crate png;
-
 use failure::Error;
+use png;
 
 pub fn image_from_png(png_data: &[u8]) -> Result<Image, Error> {
     let decoder = png::Decoder::new(png_data);

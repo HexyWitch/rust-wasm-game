@@ -7,39 +7,27 @@ authors = ["William Lundstedt <bananavice@gmail.com>"]
 members = [
     "./lib/js/",
     "./lib/core/",
-    "./lib/platform/",
-    "./lib/platform_web/",
-    "./bin/",
+    "./lib/platform/"
 ]
 
 [[bin]]
-name = "client-native"
-path = "src/bin/client-native.rs"
-required-features = ["native"]
-
-[[bin]]
-name = "client-web"
-path = "src/bin/client-web.rs"
-required-features = ["web"]
+name = "client"
+path = "src/bin/client.rs"
 
 [[bin]]
 name = "server"
 path = "src/bin/server.rs"
-required-features = ["native"]
+required-features = ["server"]
 
 [dependencies]
-failure = "*"
+failure = "0.1.1"
 png = "*"
 serde = "*"
 serde_derive = "*"
 bincode = "*"
-ws = { version = "*", optional = true }
 platform = { path = "./lib/platform/" }
 core = { path = "./lib/core/" }
-js = { path = "./lib/js/", optional = true }
-platform_native = { path = "./lib/platform_native/", optional = true }
-platform_web = { path = "./lib/platform_web/", optional = true }
+ws = { version = "*", optional = true }
 
 [features]
-native = ["platform_native", "ws"]
-web = ["js", "platform_web"]
+server = ["ws"]
