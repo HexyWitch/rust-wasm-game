@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use core::math::Vec2;
+use embla::math::Vec2;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ShipNetUpdate {

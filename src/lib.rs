@@ -1,13 +1,12 @@
 extern crate bincode;
 #[macro_use]
 extern crate failure;
-extern crate platform;
 extern crate png;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-extern crate core;
+extern crate embla;
 
 mod client_application;
 mod client_server_application;

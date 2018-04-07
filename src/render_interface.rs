@@ -1,6 +1,6 @@
 use failure::Error;
 
-use core::math::Vec2;
+use embla::math::Vec2;
 
 use texture_image::TextureImage;
 

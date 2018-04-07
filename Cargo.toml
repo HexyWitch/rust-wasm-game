@@ -5,9 +5,6 @@ authors = ["William Lundstedt <bananavice@gmail.com>"]
 
 [workspace]
 members = [
-    "./lib/js/",
-    "./lib/core/",
-    "./lib/platform/"
 ]
 
 [[bin]]
@@ -25,8 +22,7 @@ png = "*"
 serde = "*"
 serde_derive = "*"
 bincode = "*"
-platform = { path = "./lib/platform/" }
-core = { path = "./lib/core/" }
+embla = { path = "./embla/" }
 ws = { version = "*", optional = true }
 
 [features]

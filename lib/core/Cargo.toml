@@ -1,9 +1,0 @@
-[package]
-name = "core"
-version = "0.1.0"
-
-[dependencies]
-png = "*"
-failure = "*"
-serde = "*"
-serde_derive = "*"

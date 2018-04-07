@@ -38,10 +38,6 @@ impl Client {
         })))
     }
 
-    fn set_sender(&self, sender: ws::Sender) {
-        *self.0.sender.write().unwrap() = Some(sender);
-    }
-
     fn send(&mut self, data: Vec<u8>) -> Result<(), Error> {
         if let Some(ref sender) = *self.0.sender.read().unwrap() {
             sender.send(ws::Message::Binary(data))?;

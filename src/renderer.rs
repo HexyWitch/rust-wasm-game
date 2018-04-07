@@ -1,8 +1,8 @@
 use failure::Error;
 use std::rc::Rc;
 
-use core::math::Vec2;
-use platform::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
+use embla::math::Vec2;
+use embla::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 use render_interface::RenderInterface;
 use texture_atlas::TextureAtlas;

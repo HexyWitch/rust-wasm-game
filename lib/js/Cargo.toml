@@ -1,8 +1,0 @@
-[package]
-name = "js"
-version = "0.1.0"
-authors = ["William Lundstedt <bananavice@gmail.com>"]
-
-[dependencies]
-proc-macro2 = { version = "0.3.1", features = ["nightly"] }
-wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }

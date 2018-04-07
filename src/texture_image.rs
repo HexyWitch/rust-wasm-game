@@ -3,7 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use std::rc::Rc;
 
-use core::assets::Image;
+use embla::assets::Image;
 
 #[derive(Clone)]
 pub struct TextureImage {

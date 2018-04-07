@@ -4,8 +4,8 @@ use std::f32;
 use std::mem;
 use std::rc::Rc;
 
-use core::assets::image_from_png;
-use platform::input::{Input, Key};
+use embla::assets::image_from_png;
+use embla::input::{Input, Key};
 
 use net::Packet;
 use render_interface::RenderInterface;

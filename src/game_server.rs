@@ -4,7 +4,7 @@ use std::mem;
 
 use failure::Error;
 
-use core::math::Vec2;
+use embla::math::Vec2;
 
 use net::{ClientId, Packet};
 use ship::Ship;

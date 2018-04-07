@@ -1,24 +1,24 @@
-use failure::Error;
 use bincode::{deserialize, serialize};
+use failure::Error;
 
-use platform;
-use platform::input::Input;
+use embla;
+use embla::input::Input;
 
-use renderer::GameRenderer;
 use game_client::GameClient;
 use net::Packet;
+use renderer::GameRenderer;
 
 pub struct ClientApplication {
-    renderer: GameRenderer<platform::Renderer>,
-    socket: platform::Websocket,
+    renderer: GameRenderer<embla::Renderer>,
+    socket: embla::Websocket,
     client: GameClient,
 }
 
 impl ClientApplication {
     pub fn new() -> Result<Self, Error> {
         Ok(ClientApplication {
-            renderer: GameRenderer::<platform::Renderer>::new()?,
-            socket: platform::Websocket::connect("ws://127.0.0.1:2794")?,
+            renderer: GameRenderer::<embla::Renderer>::new()?,
+            socket: embla::Websocket::connect("ws://127.0.0.1:2794")?,
             client: GameClient::new()?,
         })
     }

@@ -1,0 +1,3 @@
+[submodule "embla"]
+	path = embla
+	url = git@github.com:Healthire/embla.git

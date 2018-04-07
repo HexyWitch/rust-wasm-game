@@ -1,8 +1,8 @@
 use failure::Error;
 
-use platform::input::Input;
+use embla::input::Input;
 
-use core::math::Vec2;
+use embla::math::Vec2;
 
 use game_client::Assets;
 use net::ShipNetUpdate;

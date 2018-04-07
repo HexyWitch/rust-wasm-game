@@ -1,16 +1,16 @@
-use failure::Error;
 use bincode::{deserialize, serialize};
+use failure::Error;
 
-use platform;
-use platform::input::Input;
+use embla;
+use embla::input::Input;
 
-use renderer::GameRenderer;
 use game_client::GameClient;
 use game_server::GameServer;
 use net::{ClientId, Packet};
+use renderer::GameRenderer;
 
 pub struct ClientServerApplication {
-    renderer: GameRenderer<platform::Renderer>,
+    renderer: GameRenderer<embla::Renderer>,
     server: GameServer,
     client_id: ClientId,
     client: GameClient,
@@ -25,7 +25,7 @@ impl ClientServerApplication {
         server.add_player(client_id)?;
 
         Ok(ClientServerApplication {
-            renderer: GameRenderer::<platform::Renderer>::new()?,
+            renderer: GameRenderer::<embla::Renderer>::new()?,
             server: server,
             client_id: client_id,
             client: client,
