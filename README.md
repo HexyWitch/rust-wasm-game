@@ -1,15 +1,21 @@
 # rust-wasm-game
 Experimenting with making a game running under the wasm32-unknown-unknown target
 
-## Running natively
+## Running server
+
+```
+cargo run --features server --bin server
+```
+
+## Running native client
 
 Requires SDL2 development library.
 
 ```
-cargo run --bin client-native --features native
+cargo run --bin client
 ```
 
-## Web
+## Running web client
 
 Uses [wasm-bindgen](https://github.com/alexcrichton/wasm-bindgen) for generating javascript bindings.
 
@@ -31,13 +37,13 @@ $ cargo install --git https://github.com/Healthire/wasm-bin
 
 ### Building
 ```
-$ wasm-bin build --features web --bin client-web
+$ wasm-bin build --bin client
 ```
 
-The packaged application will be output to ./target/wasm-bin/client-web/dist/client-web.js
+The packaged application will be output to ./target/wasm-bin/client/dist/client.js
 
 ### Running
 
 ```
-$ wasm-bin run --features web --bin client-web
+$ wasm-bin run --bin client
 ```
