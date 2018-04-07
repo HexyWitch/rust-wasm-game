@@ -1,12 +1,11 @@
 use failure::Error;
 use std::rc::Rc;
 
+use embla::graphics::{TextureAtlas, TextureImage};
 use embla::math::Vec2;
 use embla::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
 
 use render_interface::RenderInterface;
-use texture_atlas::TextureAtlas;
-use texture_image::TextureImage;
 
 static VERTEX_SHADER: &'static str = include_str!("../shaders/vertex.glsl");
 static FRAGMENT_SHADER: &'static str = include_str!("../shaders/fragment.glsl");

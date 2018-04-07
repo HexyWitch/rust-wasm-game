@@ -16,8 +16,6 @@ pub mod net;
 mod render_interface;
 mod renderer;
 mod ship;
-mod texture_atlas;
-mod texture_image;
 
 pub use client_application::ClientApplication;
 pub use client_server_application::ClientServerApplication;

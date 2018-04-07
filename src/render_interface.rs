@@ -2,7 +2,7 @@ use failure::Error;
 
 use embla::math::Vec2;
 
-use texture_image::TextureImage;
+use embla::graphics::TextureImage;
 
 pub trait RenderInterface {
     fn draw_texture(

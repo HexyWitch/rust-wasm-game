@@ -5,12 +5,12 @@ use std::mem;
 use std::rc::Rc;
 
 use embla::assets::image_from_png;
+use embla::graphics::TextureImage;
 use embla::input::{Input, Key};
 
 use net::Packet;
 use render_interface::RenderInterface;
 use ship::Ship;
-use texture_image::TextureImage;
 
 pub struct Assets {
     pub ship: TextureImage,
