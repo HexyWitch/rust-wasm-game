@@ -8,6 +8,7 @@ extern crate serde_derive;
 
 extern crate embla;
 
+mod bullet;
 mod client_application;
 mod client_server_application;
 mod game_client;

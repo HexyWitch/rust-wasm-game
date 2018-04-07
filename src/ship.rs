@@ -27,6 +27,14 @@ impl Ship {
         }
     }
 
+    pub fn position(&self) -> Vec2 {
+        self.position.clone()
+    }
+
+    pub fn angle(&self) -> f32 {
+        self.angle
+    }
+
     pub fn client_update(&mut self, _dt: f32, _input: &Input) -> Result<(), Error> {
         Ok(())
     }

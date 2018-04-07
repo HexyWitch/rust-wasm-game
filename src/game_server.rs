@@ -6,13 +6,15 @@ use failure::Error;
 
 use embla::math::Vec2;
 
-use net::{ClientId, Packet};
+use bullet::Bullet;
+use net::{BulletNetState, ClientId, Packet};
 use ship::Ship;
 
 pub struct PlayerInput {
     left: bool,
     right: bool,
     forward: bool,
+    shoot: bool,
 }
 
 struct PlayerData {
@@ -24,6 +26,8 @@ pub struct GameServer {
     players: HashMap<ClientId, PlayerData>,
     last_id: i32,
     ships: HashMap<i32, Ship>,
+    last_bullet_id: i32,
+    bullets: HashMap<i32, Bullet>,
     outgoing_packets: HashMap<ClientId, Vec<Packet>>,
 }
 
@@ -33,6 +37,8 @@ impl GameServer {
             players: HashMap::new(),
             last_id: 0,
             ships: HashMap::new(),
+            last_bullet_id: 0,
+            bullets: HashMap::new(),
             outgoing_packets: HashMap::new(),
         })
     }
@@ -53,6 +59,7 @@ impl GameServer {
                     left: false,
                     right: false,
                     forward: false,
+                    shoot: false,
                 },
                 ship_id: ship_id,
             },
@@ -66,6 +73,18 @@ impl GameServer {
                 ship_data: self.ships
                     .iter()
                     .map(|(k, s)| (*k, s.get_net_update()))
+                    .collect(),
+                bullet_data: self.bullets
+                    .iter()
+                    .map(|(id, bullet)| {
+                        (
+                            *id,
+                            BulletNetState {
+                                position: bullet.position(),
+                                velocity: bullet.velocity(),
+                            },
+                        )
+                    })
                     .collect(),
             });
 
@@ -85,16 +104,40 @@ impl GameServer {
         Ok(())
     }
 
+    pub fn spawn_bullet(&mut self, position: Vec2, velocity: Vec2) -> Result<(), Error> {
+        let bullet = Bullet::new(position, velocity);
+        self.bullets.insert(self.last_bullet_id, bullet);
+
+        for (_, outgoing) in self.outgoing_packets.iter_mut() {
+            outgoing.push(Packet::SpawnBullet {
+                id: self.last_bullet_id,
+                position: position,
+                velocity: velocity,
+            });
+        }
+
+        self.last_bullet_id += 1;
+        Ok(())
+    }
+
     pub fn update(&mut self, dt: f32) -> Result<(), Error> {
-        for (_client_id, player_data) in self.players.iter() {
+        let mut spawn_bullets = Vec::new();
+        for (_client_id, player_data) in self.players.iter_mut() {
             let ship = self.ships.get_mut(&player_data.ship_id).unwrap();
             ship.set_controls(
                 player_data.input.left,
                 player_data.input.right,
                 player_data.input.forward,
             );
-
             ship.server_update(dt)?;
+
+            if player_data.input.shoot {
+                spawn_bullets.push((ship.position(), ship.angle()));
+                player_data.input.shoot = false;
+            }
+        }
+        for (position, angle) in spawn_bullets {
+            self.spawn_bullet(position, Vec2::with_angle(angle) * 400.0)?;
         }
 
         for (id, ship) in self.ships.iter() {
@@ -106,6 +149,28 @@ impl GameServer {
                 outgoing.push(update_packet.clone());
             }
         }
+
+        let mut dead_bullets = Vec::new();
+        for (id, bullet) in self.bullets.iter_mut() {
+            bullet.server_update(dt)?;
+            for (_, outgoing) in self.outgoing_packets.iter_mut() {
+                outgoing.push(Packet::BulletUpdate {
+                    id: *id,
+                    update: bullet.get_net_update(),
+                });
+            }
+            if bullet.dead() {
+                dead_bullets.push(*id);
+            }
+        }
+        for id in dead_bullets {
+            self.bullets.remove(&id);
+
+            for (_, outgoing) in self.outgoing_packets.iter_mut() {
+                outgoing.push(Packet::DestroyBullet(id));
+            }
+        }
+
         Ok(())
     }
 
@@ -123,10 +188,12 @@ impl GameServer {
                     left,
                     right,
                     forward,
+                    shoot,
                 } => {
                     player_data.input.left = left;
                     player_data.input.right = right;
                     player_data.input.forward = forward;
+                    player_data.input.shoot = shoot;
                 }
                 _ => {}
             }
