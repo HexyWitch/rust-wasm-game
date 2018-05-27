@@ -1,166 +1,95 @@
 use failure::Error;
-use std::collections::HashMap;
 use std::f32;
-use std::mem;
 use std::rc::Rc;
 
 use embla::assets::image_from_png;
+use embla::ecs::World;
 use embla::graphics::TextureImage;
 use embla::input::{Input, Key};
+use embla::math::Vec2;
 
-use bullet::Bullet;
-use net::{BulletNetState, Packet};
 use render_interface::RenderInterface;
-use ship::Ship;
 
-pub struct Assets {
-    pub ship: TextureImage,
-    pub bullet: TextureImage,
+#[derive(Clone)]
+pub struct Transform {
+    position: Vec2,
+    scale: f32,
+    rotation: f32,
 }
 
-enum GameState {
-    Connecting,
-    Running {
-        ships: HashMap<i32, Ship>,
-        bullets: HashMap<i32, Bullet>,
-    },
+pub struct Velocity(Vec2);
+
+pub struct Sprite {
+    texture: TextureImage,
 }
 
 pub struct GameClient {
-    assets: Assets,
-    state: GameState,
-    outgoing_packets: Vec<Packet>,
+    world: World,
 }
+
+pub struct Player;
 
 impl GameClient {
     pub fn new() -> Result<GameClient, Error> {
-        let assets = Assets {
-            ship: TextureImage::new(Rc::new(image_from_png(include_bytes!(
-                "../assets/ship.png"
-            ))?)),
-            bullet: TextureImage::new(Rc::new(image_from_png(include_bytes!(
-                "../assets/bullet.png"
-            ))?)),
-        };
+        let mut world = World::new();
+        world.register_component::<Transform>();
+        world.register_component::<Velocity>();
+        world.register_component::<Player>();
+        world.register_component::<Sprite>();
 
-        Ok(GameClient {
-            assets: assets,
-            state: GameState::Connecting,
-            outgoing_packets: Vec::new(),
-        })
+        world
+            .add_entity()
+            .insert(Transform {
+                position: Vec2::new(200.0, 300.0),
+                scale: 1.0,
+                rotation: 0.0,
+            })?
+            .insert(Velocity(Vec2::new(0.0, 0.0)))?
+            .insert(Sprite {
+                texture: TextureImage::new(Rc::new(image_from_png(include_bytes!(
+                    "../assets/ship.png"
+                ))?)),
+            })?
+            .insert(Player)?
+            .id();
+
+        Ok(GameClient { world })
     }
 
     pub fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
-        match self.state {
-            GameState::Running {
-                ref mut ships,
-                ref mut bullets,
-            } => {
-                self.outgoing_packets.push(Packet::PlayerInput {
-                    left: input.key_is_down(&Key::A),
-                    right: input.key_is_down(&Key::D),
-                    forward: input.key_is_down(&Key::W),
-                    shoot: input.key_is_pressed(&Key::Space),
-                });
-
-                for (_, ship) in ships.iter_mut() {
-                    ship.client_update(dt, input)?;
-                }
-
-                for (_, bullet) in bullets.iter_mut() {
-                    bullet.client_update(dt, input)?;
-                }
+        for (mut transform, mut velocity, _) in self.world
+            .with_components::<(Transform, Velocity, Player)>()
+        {
+            if input.key_is_down(&Key::A) {
+                transform.rotation += 5.0 * dt;
             }
-            _ => {}
+            if input.key_is_down(&Key::D) {
+                transform.rotation -= 5.0 * dt;
+            }
+            if input.key_is_down(&Key::W) {
+                velocity.0 = Vec2::with_angle(transform.rotation) * 300.0;
+            } else {
+                velocity.0 = Vec2::zero();
+            }
         }
+
+        for (mut transform, velocity) in self.world.with_components::<(Transform, Velocity)>() {
+            transform.position += velocity.0 * dt;
+        }
+
         Ok(())
     }
 
-    pub fn render(&self, renderer: &mut RenderInterface) -> Result<(), Error> {
-        match self.state {
-            GameState::Running {
-                ref ships,
-                ref bullets,
-            } => {
-                for (_, ship) in ships.iter() {
-                    ship.render(&self.assets, renderer)?;
-                }
-                for (_, bullet) in bullets.iter() {
-                    bullet.render(&self.assets, renderer)?;
-                }
-            }
-            _ => {}
+    pub fn render(&mut self, renderer: &mut RenderInterface) -> Result<(), Error> {
+        for (sprite, transform) in self.world.with_components::<(Sprite, Transform)>() {
+            renderer.draw_texture(
+                &sprite.texture,
+                transform.position,
+                transform.scale,
+                transform.rotation,
+            )?;
         }
+
         Ok(())
-    }
-
-    pub fn handle_incoming_packets(&mut self, packets: &[Packet]) -> Result<(), Error> {
-        for p in packets {
-            match self.state {
-                GameState::Connecting => match *p {
-                    Packet::ClientInit {
-                        ref ship_data,
-                        ref bullet_data,
-                    } => {
-                        let mut ships = HashMap::new();
-                        for (id, net_data) in ship_data.iter() {
-                            let mut ship = Ship::new();
-                            ship.set_net_update(net_data);
-                            ships.insert(*id, ship);
-                        }
-                        let mut bullets = bullet_data
-                            .iter()
-                            .map(|(id, BulletNetState { position, velocity })| {
-                                (*id, Bullet::new(position.clone(), velocity.clone()))
-                            })
-                            .collect();
-
-                        self.state = GameState::Running { ships, bullets };
-                    }
-                    _ => {}
-                },
-                GameState::Running {
-                    ref mut ships,
-                    ref mut bullets,
-                } => match *p {
-                    Packet::CreateShip(id) => {
-                        let new_ship = Ship::new();
-                        ships.insert(id, new_ship);
-                    }
-                    Packet::DestroyShip(id) => {
-                        ships.remove(&id);
-                    }
-                    Packet::ShipUpdate { id, ref update } => {
-                        let ship = ships
-                            .get_mut(&id)
-                            .ok_or_else(|| format_err!("could not update ship with id {}", id))?;
-                        ship.set_net_update(update);
-                    }
-                    Packet::SpawnBullet {
-                        id,
-                        position,
-                        velocity,
-                    } => {
-                        bullets.insert(id, Bullet::new(position, velocity));
-                    }
-                    Packet::DestroyBullet(id) => {
-                        bullets.remove(&id);
-                    }
-                    Packet::BulletUpdate { id, ref update } => {
-                        let bullet = bullets
-                            .get_mut(&id)
-                            .ok_or_else(|| format_err!("could not update bullet with id {}", id))?;
-                        bullet.set_net_update(update);
-                    }
-                    _ => {}
-                },
-            }
-        }
-        Ok(())
-    }
-
-    pub fn take_outgoing_packets(&mut self) -> Result<Vec<Packet>, Error> {
-        let packets = mem::replace(&mut self.outgoing_packets, Vec::new());
-        Ok(packets)
     }
 }

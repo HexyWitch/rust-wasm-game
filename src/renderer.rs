@@ -3,7 +3,8 @@ use std::rc::Rc;
 
 use embla::graphics::{TextureAtlas, TextureImage};
 use embla::math::Vec2;
-use embla::rendering_api::{Program, Renderer, Texture, Uniform, Vertex, VertexAttributeType};
+use embla::rendering_api::{Program, Renderer, Texture, TextureFiltering, Uniform, Vertex,
+                           VertexAttributeType};
 
 use render_interface::RenderInterface;
 
@@ -46,7 +47,10 @@ where
 
         let texture_size = (4096, 4096);
 
-        let texture = Rc::new(R::create_texture(texture_size)?);
+        let texture = Rc::new(R::create_texture(
+            texture_size,
+            Some(TextureFiltering::Linear),
+        )?);
 
         let screen_size = R::screen_size();
         program.set_uniform(

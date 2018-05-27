@@ -3,27 +3,7 @@ name = "game"
 version = "0.1.0"
 authors = ["William Lundstedt <bananavice@gmail.com>"]
 
-[workspace]
-members = [
-]
-
-[[bin]]
-name = "client"
-path = "src/bin/client.rs"
-
-[[bin]]
-name = "server"
-path = "src/bin/server.rs"
-required-features = ["server"]
-
 [dependencies]
 failure = "0.1.1"
 png = "*"
-serde = "*"
-serde_derive = "*"
-bincode = "*"
 embla = { path = "./embla/" }
-ws = { version = "*", optional = true }
-
-[features]
-server = ["ws"]
