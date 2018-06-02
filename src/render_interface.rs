@@ -8,7 +8,7 @@ pub trait RenderInterface {
     fn draw_texture(
         &mut self,
         texture: &TextureImage,
-        position: Vec2,
+        position: Vec2<f32>,
         scale: f32,
         rotation: f32,
     ) -> Result<(), Error>;

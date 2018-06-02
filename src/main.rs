@@ -9,7 +9,7 @@ mod renderer;
 pub use client_server_application::ClientServerApplication;
 
 pub fn main() {
-    embla::run(|| {
+    embla::run(|_context| {
         let mut application = ClientServerApplication::new().unwrap();
         move |dt, input| {
             application.update(dt, input)?;

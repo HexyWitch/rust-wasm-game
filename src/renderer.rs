@@ -3,8 +3,9 @@ use std::rc::Rc;
 
 use embla::graphics::{TextureAtlas, TextureImage};
 use embla::math::Vec2;
-use embla::rendering_api::{Program, Renderer, Texture, TextureFiltering, Uniform, Vertex,
-                           VertexAttributeType};
+use embla::rendering_api::{
+    Program, Renderer, Texture, TextureFiltering, Uniform, Vertex, VertexAttributeType,
+};
 
 use render_interface::RenderInterface;
 
@@ -75,7 +76,7 @@ where
     pub fn draw_texture(
         &mut self,
         texture: &TextureImage,
-        position: Vec2,
+        position: Vec2<f32>,
         scale: f32,
         rotation: f32,
     ) -> Result<(), Error> {
@@ -105,10 +106,10 @@ where
             rotate((rect.2, rect.1), rotation),
         ];
 
-        let ll = (position.0 + quad[0].0, position.1 + quad[0].1);
-        let ul = (position.0 + quad[1].0, position.1 + quad[1].1);
-        let ur = (position.0 + quad[2].0, position.1 + quad[2].1);
-        let lr = (position.0 + quad[3].0, position.1 + quad[3].1);
+        let ll = (position.x + quad[0].0, position.y + quad[0].1);
+        let ul = (position.x + quad[1].0, position.y + quad[1].1);
+        let ur = (position.x + quad[2].0, position.y + quad[2].1);
+        let lr = (position.x + quad[3].0, position.y + quad[3].1);
         let verts = [
             (ll, (tex_region[0], tex_region[1])),
             (ul, (tex_region[0], tex_region[3])),
@@ -146,7 +147,7 @@ where
     fn draw_texture(
         &mut self,
         texture: &TextureImage,
-        position: Vec2,
+        position: Vec2<f32>,
         scale: f32,
         rotation: f32,
     ) -> Result<(), Error> {

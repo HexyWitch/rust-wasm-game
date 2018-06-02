@@ -12,12 +12,12 @@ use render_interface::RenderInterface;
 
 #[derive(Clone)]
 pub struct Transform {
-    position: Vec2,
+    position: Vec2<f32>,
     scale: f32,
     rotation: f32,
 }
 
-pub struct Velocity(Vec2);
+pub struct Velocity(Vec2<f32>);
 
 pub struct Sprite {
     texture: TextureImage,
@@ -57,7 +57,8 @@ impl GameClient {
     }
 
     pub fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
-        for (mut transform, mut velocity, _) in self.world
+        for (mut transform, mut velocity, _) in self
+            .world
             .with_components::<(Transform, Velocity, Player)>()
         {
             if input.key_is_down(&Key::A) {
