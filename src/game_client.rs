@@ -56,16 +56,16 @@ impl GameClient {
         Ok(GameClient { world })
     }
 
-    pub fn update(&mut self, dt: f32, input: &Input) -> Result<(), Error> {
+    pub fn update(&mut self, dt: f64, input: &Input) -> Result<(), Error> {
         for (mut transform, mut velocity, _) in self
             .world
             .with_components::<(Transform, Velocity, Player)>()
         {
             if input.key_is_down(&Key::A) {
-                transform.rotation += 5.0 * dt;
+                transform.rotation += 5.0 * dt as f32;
             }
             if input.key_is_down(&Key::D) {
-                transform.rotation -= 5.0 * dt;
+                transform.rotation -= 5.0 * dt as f32;
             }
             if input.key_is_down(&Key::W) {
                 velocity.0 = Vec2::with_angle(transform.rotation) * 300.0;
@@ -75,7 +75,7 @@ impl GameClient {
         }
 
         for (mut transform, velocity) in self.world.with_components::<(Transform, Velocity)>() {
-            transform.position += velocity.0 * dt;
+            transform.position += velocity.0 * dt as f32;
         }
 
         Ok(())

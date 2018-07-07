@@ -1,10 +1,10 @@
 use failure::Error;
-use std::rc::Rc;
 
 use embla::graphics::{TextureAtlas, TextureImage};
 use embla::math::Vec2;
-use embla::rendering_api::{
+use embla::rendering::{
     Program, Renderer, Texture, TextureFiltering, Uniform, Vertex, VertexAttributeType,
+    VertexBuffer,
 };
 
 use render_interface::RenderInterface;
@@ -28,32 +28,23 @@ impl Vertex for TexturedVertex {
     }
 }
 
-pub struct GameRenderer<R: Renderer> {
-    program: R::Program,
-    vertex_buffer: R::VertexBuffer,
+pub struct GameRenderer {
+    program: Program<TexturedVertex>,
+    vertex_buffer: VertexBuffer,
     vertices: Vec<TexturedVertex>,
     atlas: TextureAtlas,
-    texture: Rc<R::Texture>,
+    texture: Texture,
 }
 
-impl<R> GameRenderer<R>
-where
-    R: Renderer,
-{
-    pub fn new() -> Result<GameRenderer<R>, Error>
-    where
-        R: Renderer,
-    {
-        let mut program = R::create_program(VERTEX_SHADER, FRAGMENT_SHADER)?;
+impl GameRenderer {
+    pub fn new(renderer: &Renderer) -> Result<GameRenderer, Error> {
+        let mut program = renderer.create_program(VERTEX_SHADER, FRAGMENT_SHADER)?;
 
         let texture_size = (4096, 4096);
 
-        let texture = Rc::new(R::create_texture(
-            texture_size,
-            Some(TextureFiltering::Linear),
-        )?);
+        let texture = renderer.create_texture(texture_size, Some(TextureFiltering::Linear))?;
 
-        let screen_size = R::screen_size();
+        let screen_size = renderer.screen_size();
         program.set_uniform(
             "screen_size",
             Uniform::Vec2((screen_size.0 as f32, screen_size.1 as f32)),
@@ -64,9 +55,9 @@ where
         );
         program.set_uniform("texture", Uniform::Texture(texture.clone()));
 
-        Ok(GameRenderer::<R> {
+        Ok(GameRenderer {
             program: program,
-            vertex_buffer: R::create_vertex_buffer()?,
+            vertex_buffer: renderer.create_vertex_buffer()?,
             vertices: Vec::new(),
             atlas: TextureAtlas::new(texture_size),
             texture: texture,
@@ -129,10 +120,10 @@ where
         Ok(())
     }
 
-    pub fn do_render(&mut self) -> Result<(), Error> {
-        R::clear(Some((0.0, 0.0, 0.0, 1.0)));
+    pub fn do_render(&mut self, renderer: &Renderer) -> Result<(), Error> {
+        renderer.clear(Some((0.0, 0.0, 0.0, 1.0)));
 
-        R::render_vertices(&self.vertex_buffer, &self.program, &self.vertices)?;
+        renderer.render_vertices(&self.vertex_buffer, &self.program, &self.vertices)?;
 
         self.vertices.clear();
 
@@ -140,10 +131,7 @@ where
     }
 }
 
-impl<R> RenderInterface for GameRenderer<R>
-where
-    R: Renderer,
-{
+impl RenderInterface for GameRenderer {
     fn draw_texture(
         &mut self,
         texture: &TextureImage,
