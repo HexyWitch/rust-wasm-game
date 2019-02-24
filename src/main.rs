@@ -1,8 +1,17 @@
+extern crate bincode;
 extern crate embla;
+#[macro_use]
 extern crate failure;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 mod client_server_application;
+mod components;
 mod game_client;
+mod game_server;
+mod net;
+mod prefab;
 mod render_interface;
 mod renderer;
 

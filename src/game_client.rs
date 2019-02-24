@@ -1,81 +1,105 @@
 use failure::Error;
 use std::f32;
-use std::rc::Rc;
+use std::mem;
 
-use embla::assets::image_from_png;
 use embla::ecs::World;
-use embla::graphics::TextureImage;
 use embla::input::{Input, Key};
 use embla::math::Vec2;
 
+use components;
+use components::{Player, Sprite, Transform, Velocity};
+use net::Packet;
+use prefab;
 use render_interface::RenderInterface;
 
-#[derive(Clone)]
-pub struct Transform {
-    position: Vec2<f32>,
-    scale: f32,
-    rotation: f32,
-}
-
-pub struct Velocity(Vec2<f32>);
-
-pub struct Sprite {
-    texture: TextureImage,
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum GameState {
+    Start,
+    Connecting,
+    Running,
 }
 
 pub struct GameClient {
     world: World,
+    prefabs: prefab::Registry,
+    outgoing: Vec<Packet>,
+    state: GameState,
 }
-
-pub struct Player;
 
 impl GameClient {
     pub fn new() -> Result<GameClient, Error> {
         let mut world = World::new();
-        world.register_component::<Transform>();
-        world.register_component::<Velocity>();
-        world.register_component::<Player>();
-        world.register_component::<Sprite>();
+        components::register_components(&mut world);
 
-        world
-            .add_entity()
-            .insert(Transform {
-                position: Vec2::new(200.0, 300.0),
-                scale: 1.0,
-                rotation: 0.0,
-            })?
-            .insert(Velocity(Vec2::new(0.0, 0.0)))?
-            .insert(Sprite {
-                texture: TextureImage::new(Rc::new(image_from_png(include_bytes!(
-                    "../assets/ship.png"
-                ))?)),
-            })?
-            .insert(Player)?
-            .id();
+        let mut prefabs = prefab::Registry::new();
+        prefab::register_prefabs(&mut prefabs);
 
-        Ok(GameClient { world })
+        Ok(GameClient {
+            world,
+            prefabs,
+            outgoing: Vec::new(),
+            state: GameState::Start,
+        })
     }
 
-    pub fn update(&mut self, dt: f64, input: &Input) -> Result<(), Error> {
-        for (mut transform, mut velocity, _) in self
-            .world
-            .with_components::<(Transform, Velocity, Player)>()
-        {
-            if input.key_is_down(&Key::A) {
-                transform.rotation += 5.0 * dt as f32;
+    pub fn handle_incoming(&mut self, packet: &Packet) -> Result<(), Error> {
+        match *packet {
+            Packet::WorldState(ref entity_stores) => {
+                if self.state == GameState::Connecting {
+                    self.state = GameState::Running;
+                } else {
+                    return Err(format_err!("unexpected world state packet"));
+                }
+                for store in entity_stores.iter() {
+                    self.prefabs.load(&mut self.world, store)?;
+                }
             }
-            if input.key_is_down(&Key::D) {
-                transform.rotation -= 5.0 * dt as f32;
+            Packet::CreateEntity(ref store) => {
+                self.prefabs.load(&mut self.world, store)?;
             }
-            if input.key_is_down(&Key::W) {
-                velocity.0 = Vec2::with_angle(transform.rotation) * 300.0;
-            } else {
-                velocity.0 = Vec2::zero();
+            _ => {
+                return Err(format_err!("client received unexpected packet"));
             }
         }
 
-        for (mut transform, velocity) in self.world.with_components::<(Transform, Velocity)>() {
-            transform.position += velocity.0 * dt as f32;
+        Ok(())
+    }
+
+    pub fn take_outgoing(&mut self) -> Vec<Packet> {
+        mem::replace(&mut self.outgoing, Vec::new())
+    }
+
+    pub fn update(&mut self, dt: f64, input: &Input) -> Result<(), Error> {
+        match self.state {
+            GameState::Start => {
+                self.outgoing.push(Packet::Connect);
+                self.state = GameState::Connecting;
+            }
+            GameState::Connecting => {}
+            GameState::Running => {
+                for (mut transform, mut velocity, _) in self
+                    .world
+                    .with_components::<(Transform, Velocity, Player)>()
+                {
+                    if input.key_is_down(&Key::A) {
+                        transform.rotation += 5.0 * dt as f32;
+                    }
+                    if input.key_is_down(&Key::D) {
+                        transform.rotation -= 5.0 * dt as f32;
+                    }
+                    if input.key_is_down(&Key::W) {
+                        velocity.0 = Vec2::with_angle(transform.rotation) * 300.0;
+                    } else {
+                        velocity.0 = Vec2::zero();
+                    }
+                }
+
+                for (mut transform, velocity) in
+                    self.world.with_components::<(Transform, Velocity)>()
+                {
+                    transform.position += velocity.0 * dt as f32;
+                }
+            }
         }
 
         Ok(())
