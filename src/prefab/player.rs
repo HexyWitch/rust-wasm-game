@@ -4,7 +4,7 @@ use std::rc::Rc;
 use failure::Error;
 
 use embla::assets::image_from_png;
-use embla::ecs::World;
+use embla::ecs::{Entity, World};
 use embla::graphics::TextureImage;
 use embla::math::Vec2;
 
@@ -21,7 +21,7 @@ pub struct PlayerConfig {
 impl Prefab for PlayerPrefab {
     type Config = PlayerConfig;
 
-    fn store(world: &mut World, e: usize) -> Result<Self::Config, Error> {
+    fn store(world: &mut World, e: Entity) -> Result<Self::Config, Error> {
         let position = world
             .get_component::<Transform>(e)
             .ok_or_else(|| format_err!("invalid entity"))?
@@ -29,7 +29,7 @@ impl Prefab for PlayerPrefab {
 
         Ok(PlayerConfig { position })
     }
-    fn create(world: &mut World, config: Self::Config) -> Result<usize, Error> {
+    fn create(world: &mut World, config: Self::Config) -> Result<Entity, Error> {
         Ok(world
             .add_entity()
             .insert(Transform {
@@ -44,6 +44,6 @@ impl Prefab for PlayerPrefab {
                 ))?)),
             })?
             .insert(Player)?
-            .id())
+            .entity())
     }
 }

@@ -63,7 +63,7 @@ impl GameServer {
 
     fn world_state(&mut self) -> Result<Vec<net::EntityStore>, Error> {
         let mut players = Vec::new();
-        for (mut transform, _) in self.world.with_components::<(Transform, Player)>() {
+        for (mut transform, _) in self.world.iter::<(Transform, Player)>() {
             players.push(self.prefabs.serialize::<PlayerPrefab>(&PlayerConfig {
                 position: transform.position,
             })?);

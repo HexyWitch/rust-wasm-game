@@ -77,9 +77,8 @@ impl GameClient {
             }
             GameState::Connecting => {}
             GameState::Running => {
-                for (mut transform, mut velocity, _) in self
-                    .world
-                    .with_components::<(Transform, Velocity, Player)>()
+                for (mut transform, mut velocity, _) in
+                    self.world.iter::<(Transform, Velocity, Player)>()
                 {
                     if input.key_is_down(&Key::A) {
                         transform.rotation += 5.0 * dt as f32;
@@ -93,10 +92,7 @@ impl GameClient {
                         velocity.0 = Vec2::zero();
                     }
                 }
-
-                for (mut transform, velocity) in
-                    self.world.with_components::<(Transform, Velocity)>()
-                {
+                for (mut transform, velocity) in self.world.iter::<(Transform, Velocity)>() {
                     transform.position += velocity.0 * dt as f32;
                 }
             }
@@ -106,7 +102,7 @@ impl GameClient {
     }
 
     pub fn render(&mut self, renderer: &mut RenderInterface) -> Result<(), Error> {
-        for (sprite, transform) in self.world.with_components::<(Sprite, Transform)>() {
+        for (sprite, transform) in self.world.iter::<(Sprite, Transform)>() {
             renderer.draw_texture(
                 &sprite.texture,
                 transform.position,

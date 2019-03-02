@@ -5,15 +5,15 @@ use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::any::TypeId;
 
-use embla::ecs::World;
+use embla::ecs::{Entity, World};
 
 use components::Prefab as PrefabComponent;
 
 pub trait Prefab {
     type Config: Serialize + for<'a> Deserialize<'a>;
 
-    fn store(world: &mut World, e: usize) -> Result<Self::Config, Error>;
-    fn create(world: &mut World, config: Self::Config) -> Result<usize, Error>;
+    fn store(world: &mut World, e: Entity) -> Result<Self::Config, Error>;
+    fn create(world: &mut World, config: Self::Config) -> Result<Entity, Error>;
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -24,8 +24,8 @@ struct PrefabStore(usize, Vec<u8>);
 
 pub struct Registry {
     prefabs: HashMap<TypeId, usize>,
-    loaders: Vec<Box<Fn(&mut World, Vec<u8>) -> Result<usize, Error>>>,
-    storers: Vec<Box<Fn(&mut World, usize) -> Result<Vec<u8>, Error>>>,
+    loaders: Vec<Box<Fn(&mut World, Vec<u8>) -> Result<Entity, Error>>>,
+    storers: Vec<Box<Fn(&mut World, Entity) -> Result<Vec<u8>, Error>>>,
 }
 
 impl Registry {
@@ -40,13 +40,13 @@ impl Registry {
     pub fn register_prefab<T: Prefab + 'static>(&mut self) {
         self.prefabs.insert(TypeId::of::<T>(), self.loaders.len());
         self.loaders.push(Box::new(
-            |world: &mut World, store: Vec<u8>| -> Result<usize, Error> {
+            |world: &mut World, store: Vec<u8>| -> Result<Entity, Error> {
                 let config = bincode::deserialize(&store)?;
                 T::create(world, config)
             },
         ));
         self.storers.push(Box::new(
-            |world: &mut World, e: usize| -> Result<Vec<u8>, Error> {
+            |world: &mut World, e: Entity| -> Result<Vec<u8>, Error> {
                 Ok(bincode::serialize(&T::store(world, e)?)?)
             },
         ))
@@ -56,7 +56,7 @@ impl Registry {
         &self,
         world: &mut World,
         config: T::Config,
-    ) -> Result<usize, Error> {
+    ) -> Result<Entity, Error> {
         let id = *self
             .prefabs
             .get(&TypeId::of::<T>())
@@ -80,7 +80,7 @@ impl Registry {
         ))?)
     }
 
-    pub fn load(&self, world: &mut World, store: &[u8]) -> Result<usize, Error> {
+    pub fn load(&self, world: &mut World, store: &[u8]) -> Result<Entity, Error> {
         let store = bincode::deserialize::<PrefabStore>(store)?;
         let f = self
             .loaders
@@ -89,7 +89,8 @@ impl Registry {
         f(world, store.1)
     }
 
-    pub fn store(&self, world: &mut World, e: usize) -> Result<Vec<u8>, Error> {
+    #[allow(dead_code)]
+    pub fn store(&self, world: &mut World, e: Entity) -> Result<Vec<u8>, Error> {
         let prefab_id = world
             .get_component::<PrefabComponent>(e)
             .ok_or_else(|| format_err!("entity is not a prefab"))?
