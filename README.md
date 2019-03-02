@@ -6,7 +6,7 @@ Experimenting with making a game running under the wasm32-unknown-unknown target
 Requires that you have the SDL2 development library installed on your computer.
 
 ```
-cargo run --bin client
+cargo run
 ```
 
 ## Running web client
