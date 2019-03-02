@@ -2,9 +2,9 @@ use failure::Error;
 use std::f32;
 use std::mem;
 
-use embla::ecs::World;
 use embla::input::{Input, Key};
 use embla::math::Vec2;
+use embla_ecs::World;
 
 use components;
 use components::{Player, Sprite, Transform, Velocity};

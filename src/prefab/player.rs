@@ -4,9 +4,9 @@ use std::rc::Rc;
 use failure::Error;
 
 use embla::assets::image_from_png;
-use embla::ecs::{Entity, World};
 use embla::graphics::TextureImage;
 use embla::math::Vec2;
+use embla_ecs::{Entity, World};
 
 use components::{Player, Sprite, Transform, Velocity};
 use prefab::Prefab;
@@ -23,7 +23,7 @@ impl Prefab for PlayerPrefab {
 
     fn store(world: &mut World, e: Entity) -> Result<Self::Config, Error> {
         let position = world
-            .get_component::<Transform>(e)
+            .get_component::<Transform>(e)?
             .ok_or_else(|| format_err!("invalid entity"))?
             .position;
 

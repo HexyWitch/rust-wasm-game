@@ -5,7 +5,7 @@ use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::any::TypeId;
 
-use embla::ecs::{Entity, World};
+use embla_ecs::{Entity, World};
 
 use components::Prefab as PrefabComponent;
 
@@ -92,7 +92,7 @@ impl Registry {
     #[allow(dead_code)]
     pub fn store(&self, world: &mut World, e: Entity) -> Result<Vec<u8>, Error> {
         let prefab_id = world
-            .get_component::<PrefabComponent>(e)
+            .get_component::<PrefabComponent>(e)?
             .ok_or_else(|| format_err!("entity is not a prefab"))?
             .0;
         let f = self.storers.get(prefab_id.0).unwrap();

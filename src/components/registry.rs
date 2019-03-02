@@ -1,4 +1,4 @@
-use embla::ecs::World;
+use embla_ecs::World;
 
 pub use super::player::*;
 pub use super::prefab::*;

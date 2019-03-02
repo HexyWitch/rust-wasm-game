@@ -9,4 +9,5 @@ png = "*"
 serde="*"
 serde_derive = "*"
 bincode="*"
+embla-ecs = { git = "https://github.com/Healthire/embla-ecs" }
 embla = { path = "./embla/" }

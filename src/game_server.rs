@@ -1,8 +1,8 @@
 use failure::Error;
 use std::mem;
 
-use embla::ecs::World;
 use embla::math::Vec2;
+use embla_ecs::World;
 
 use components;
 use components::{Player, Transform};
