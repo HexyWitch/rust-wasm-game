@@ -8,6 +8,6 @@ failure = "0.1.1"
 png = "*"
 serde="*"
 serde_derive = "*"
-bincode="*"
-embla-ecs = { git = "https://github.com/Healthire/embla-ecs" }
+bincode= "*"
+specs = "*"
 embla = { path = "./embla/" }

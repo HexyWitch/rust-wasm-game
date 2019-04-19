@@ -1,11 +1,11 @@
 extern crate bincode;
 extern crate embla;
-extern crate embla_ecs;
 #[macro_use]
 extern crate failure;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate specs;
 
 mod client_server_application;
 mod components;

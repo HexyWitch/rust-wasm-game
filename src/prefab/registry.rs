@@ -5,7 +5,7 @@ use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::any::TypeId;
 
-use embla_ecs::{Entity, World};
+use specs::{Entity, World};
 
 use components::Prefab as PrefabComponent;
 
@@ -63,9 +63,8 @@ impl Registry {
             .ok_or_else(|| format_err!("prefab not registered"))?;
         let e = T::create(world, config)?;
         world
-            .entity(e)
-            .unwrap()
-            .insert(PrefabComponent(PrefabId(id)))?;
+            .write_storage::<PrefabComponent>()
+            .insert(e, PrefabComponent(PrefabId(id)))?;
         Ok(e)
     }
 
@@ -92,8 +91,9 @@ impl Registry {
     #[allow(dead_code)]
     pub fn store(&self, world: &mut World, e: Entity) -> Result<Vec<u8>, Error> {
         let prefab_id = world
-            .get_component::<PrefabComponent>(e)?
-            .ok_or_else(|| format_err!("entity is not a prefab"))?
+            .read_storage::<PrefabComponent>()
+            .get(e)
+            .ok_or_else(|| format_err!("entity not found in PrefabComponent storage"))?
             .0;
         let f = self.storers.get(prefab_id.0).unwrap();
         Ok(bincode::serialize(&PrefabStore(prefab_id.0, f(world, e)?))?)

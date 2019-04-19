@@ -2,7 +2,7 @@ use failure::Error;
 use std::mem;
 
 use embla::math::Vec2;
-use embla_ecs::World;
+use specs::{Join, ReadStorage, World};
 
 use components;
 use components::{Player, Transform};
@@ -63,7 +63,9 @@ impl GameServer {
 
     fn world_state(&mut self) -> Result<Vec<net::EntityStore>, Error> {
         let mut players = Vec::new();
-        for (mut transform, _) in self.world.iter::<(Transform, Player)>() {
+        let transform: ReadStorage<Transform> = self.world.read_storage();
+        let player: ReadStorage<Player> = self.world.read_storage();
+        for (transform, _) in (&transform, &player).join() {
             players.push(self.prefabs.serialize::<PlayerPrefab>(&PlayerConfig {
                 position: transform.position,
             })?);

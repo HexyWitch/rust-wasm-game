@@ -1,12 +1,12 @@
 use std::f32;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use failure::Error;
+use specs::{Builder, Entity, World};
 
 use embla::assets::image_from_png;
 use embla::graphics::TextureImage;
 use embla::math::Vec2;
-use embla_ecs::{Entity, World};
 
 use components::{Player, Sprite, Transform, Velocity};
 use prefab::Prefab;
@@ -23,27 +23,28 @@ impl Prefab for PlayerPrefab {
 
     fn store(world: &mut World, e: Entity) -> Result<Self::Config, Error> {
         let position = world
-            .get_component::<Transform>(e)?
-            .ok_or_else(|| format_err!("invalid entity"))?
+            .read_storage::<Transform>()
+            .get(e)
+            .ok_or_else(|| format_err!("entity not found"))?
             .position;
 
         Ok(PlayerConfig { position })
     }
     fn create(world: &mut World, config: Self::Config) -> Result<Entity, Error> {
         Ok(world
-            .add_entity()
-            .insert(Transform {
+            .create_entity()
+            .with(Transform {
                 position: config.position,
                 scale: 1.0,
                 rotation: 0.0,
-            })?
-            .insert(Velocity(Vec2::new(0.0, 0.0)))?
-            .insert(Sprite {
-                texture: TextureImage::new(Rc::new(image_from_png(include_bytes!(
+            })
+            .with(Velocity(Vec2::new(0.0, 0.0)))
+            .with(Sprite {
+                texture: TextureImage::new(Arc::new(image_from_png(include_bytes!(
                     "../../assets/ship.png"
                 ))?)),
-            })?
-            .insert(Player)?
-            .entity())
+            })
+            .with(Player)
+            .build())
     }
 }
