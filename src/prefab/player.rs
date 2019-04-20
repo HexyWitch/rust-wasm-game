@@ -19,32 +19,17 @@ pub struct PlayerConfig {
 }
 
 impl Prefab for PlayerPrefab {
-    type Config = PlayerConfig;
-
-    fn store(world: &mut World, e: Entity) -> Result<Self::Config, Error> {
-        let position = world
-            .read_storage::<Transform>()
-            .get(e)
-            .ok_or_else(|| format_err!("entity not found"))?
-            .position;
-
-        Ok(PlayerConfig { position })
-    }
-    fn create(world: &mut World, config: Self::Config) -> Result<Entity, Error> {
+    fn create(world: &mut World) -> Result<Entity, Error> {
         Ok(world
             .create_entity()
-            .with(Transform {
-                position: config.position,
-                scale: 1.0,
-                rotation: 0.0,
-            })
-            .with(Velocity(Vec2::new(0.0, 0.0)))
+            .with(Transform::default())
+            .with(Velocity::default())
             .with(Sprite {
                 texture: TextureImage::new(Arc::new(image_from_png(include_bytes!(
                     "../../assets/ship.png"
                 ))?)),
             })
-            .with(Player)
+            .with(Player::default())
             .build())
     }
 }

@@ -1,5 +1,5 @@
 mod player;
-mod prefab;
+mod networked;
 mod registry;
 mod sprite;
 mod transform;

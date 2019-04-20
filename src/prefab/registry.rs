@@ -1,31 +1,19 @@
 use std::collections::HashMap;
 
-use bincode;
 use failure::Error;
-use serde::{Deserialize, Serialize};
 use std::any::TypeId;
 
 use specs::{Entity, World};
 
-use components::Prefab as PrefabComponent;
-
-pub trait Prefab {
-    type Config: Serialize + for<'a> Deserialize<'a>;
-
-    fn store(world: &mut World, e: Entity) -> Result<Self::Config, Error>;
-    fn create(world: &mut World, config: Self::Config) -> Result<Entity, Error>;
-}
+use prefab::Prefab;
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct PrefabId(usize);
-
-#[derive(Clone, Serialize, Deserialize)]
-struct PrefabStore(usize, Vec<u8>);
+pub struct PrefabIndex(u8);
+static MAX_PREFAB_TYPE: usize = std::u8::MAX as usize;
 
 pub struct Registry {
-    prefabs: HashMap<TypeId, usize>,
-    loaders: Vec<Box<Fn(&mut World, Vec<u8>) -> Result<Entity, Error>>>,
-    storers: Vec<Box<Fn(&mut World, Entity) -> Result<Vec<u8>, Error>>>,
+    prefabs: HashMap<TypeId, u8>,
+    loaders: Vec<Box<Fn(&mut World) -> Result<Entity, Error>>>,
 }
 
 impl Registry {
@@ -33,69 +21,35 @@ impl Registry {
         Registry {
             prefabs: HashMap::new(),
             loaders: Vec::new(),
-            storers: Vec::new(),
         }
     }
 
     pub fn register_prefab<T: Prefab + 'static>(&mut self) {
-        self.prefabs.insert(TypeId::of::<T>(), self.loaders.len());
-        self.loaders.push(Box::new(
-            |world: &mut World, store: Vec<u8>| -> Result<Entity, Error> {
-                let config = bincode::deserialize(&store)?;
-                T::create(world, config)
-            },
-        ));
-        self.storers.push(Box::new(
-            |world: &mut World, e: Entity| -> Result<Vec<u8>, Error> {
-                Ok(bincode::serialize(&T::store(world, e)?)?)
-            },
-        ))
+        if self.loaders.len() > MAX_PREFAB_TYPE {
+            panic!("max number of prefabs is {}", MAX_PREFAB_TYPE);
+        }
+        self.prefabs
+            .insert(TypeId::of::<T>(), self.loaders.len() as u8);
+        self.loaders.push(Box::new(T::create));
     }
 
     pub fn create<T: Prefab + 'static>(
         &self,
         world: &mut World,
-        config: T::Config,
-    ) -> Result<Entity, Error> {
-        let id = *self
+    ) -> Result<(Entity, PrefabIndex), Error> {
+        let prefab = *self
             .prefabs
             .get(&TypeId::of::<T>())
-            .ok_or_else(|| format_err!("prefab not registered"))?;
-        let e = T::create(world, config)?;
-        world
-            .write_storage::<PrefabComponent>()
-            .insert(e, PrefabComponent(PrefabId(id)))?;
-        Ok(e)
+            .expect("prefab not registered");
+        let e = T::create(world)?;
+        Ok((e, PrefabIndex(prefab)))
     }
 
-    pub fn serialize<T: Prefab + 'static>(&self, config: &T::Config) -> Result<Vec<u8>, Error> {
-        let id = self
-            .prefabs
-            .get(&TypeId::of::<T>())
-            .ok_or_else(|| format_err!("prefab not registered"))?;
-        Ok(bincode::serialize(&PrefabStore(
-            *id,
-            bincode::serialize(config)?,
-        ))?)
-    }
-
-    pub fn load(&self, world: &mut World, store: &[u8]) -> Result<Entity, Error> {
-        let store = bincode::deserialize::<PrefabStore>(store)?;
-        let f = self
+    pub fn instantiate(&self, world: &mut World, prefab: PrefabIndex) -> Result<Entity, Error> {
+        let loader = self
             .loaders
-            .get(store.0)
-            .ok_or_else(|| format_err!("prefab id out of range"))?;
-        f(world, store.1)
-    }
-
-    #[allow(dead_code)]
-    pub fn store(&self, world: &mut World, e: Entity) -> Result<Vec<u8>, Error> {
-        let prefab_id = world
-            .read_storage::<PrefabComponent>()
-            .get(e)
-            .ok_or_else(|| format_err!("entity not found in PrefabComponent storage"))?
-            .0;
-        let f = self.storers.get(prefab_id.0).unwrap();
-        Ok(bincode::serialize(&PrefabStore(prefab_id.0, f(world, e)?))?)
+            .get(prefab.0 as usize)
+            .ok_or_else(|| format_err!("attempt to load unregistered prefab"))?;
+        loader(world)
     }
 }

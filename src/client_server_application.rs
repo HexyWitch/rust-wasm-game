@@ -17,8 +17,10 @@ pub struct ClientServerApplication {
 
 impl ClientServerApplication {
     pub fn new(window: Window) -> Result<Self, Error> {
-        let server = GameServer::new()?;
+        let mut server = GameServer::new()?;
         let client = GameClient::new()?;
+
+        server.add_client(0);
 
         Ok(ClientServerApplication {
             renderer: GameRenderer::new(&window.renderer())?,
@@ -32,20 +34,16 @@ impl ClientServerApplication {
     pub fn update(&mut self, dt: f64, input: &Input) -> Result<(), Error> {
         self.server.update(dt)?;
 
-        if self.tick % 3 == 0 {
-            let packets = self.server.take_outgoing();
-            for packet in packets {
-                self.client.handle_incoming(&packet)?;
-            }
+        let packets = self.server.take_outgoing(&0).unwrap();
+        for packet in packets {
+            self.client.handle_incoming(packet)?;
         }
 
         self.client.update(dt, input)?;
 
-        if self.tick % 3 == 0 {
-            let packets = self.client.take_outgoing();
-            for packet in packets {
-                self.server.handle_incoming(&packet)?;
-            }
+        let packets = self.client.take_outgoing();
+        for packet in packets {
+            self.server.handle_incoming(0, &packet)?;
         }
 
         self.client.render(&mut self.renderer)?;

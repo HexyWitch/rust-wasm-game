@@ -12,9 +12,11 @@ mod components;
 mod game_client;
 mod game_server;
 mod net;
+mod packets;
 mod prefab;
 mod render_interface;
 mod renderer;
+mod systems;
 
 use embla::math::Vec2;
 use embla::window::WindowSettings;

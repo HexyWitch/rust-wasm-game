@@ -1,19 +1,16 @@
 use failure::Error;
-use std::f32;
+use std::collections::HashMap;
 use std::mem;
 
-use embla::graphics::TextureImage;
 use embla::input::{Input, Key};
-use embla::math::Vec2;
-use specs::{Join, ReadStorage, RunNow, System, World, WriteStorage};
+use specs::{Join, World};
 
 use components;
-use components::{Sprite, Transform, Velocity};
-use net::Packet;
+use components::{Networked, Sprite, Transform};
+use net::{ComponentStore, EntityId, NetComponentAdapter};
+use packets::{EntityStore, Packet};
 use prefab;
 use render_interface::RenderInterface;
-
-static TIMESTEP: f64 = 1.0 / 60.0;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum GameState {
@@ -22,123 +19,21 @@ enum GameState {
     Running,
 }
 
-struct InputSystem {
-    input: Input,
-}
-
-impl InputSystem {
-    fn new() -> InputSystem {
-        InputSystem {
-            input: Input::new(),
-        }
-    }
-
-    fn set_input(&mut self, input: Input) {
-        self.input = input;
-    }
-}
-
-impl<'a> System<'a> for InputSystem {
-    type SystemData = (WriteStorage<'a, Transform>, WriteStorage<'a, Velocity>);
-    fn run(&mut self, (mut transform, mut vel): Self::SystemData) {
-        for (transform, velocity) in (&mut transform, &mut vel).join() {
-            if self.input.key_is_down(&Key::A) {
-                transform.rotation += 5.0 * TIMESTEP as f32;
-            }
-            if self.input.key_is_down(&Key::D) {
-                transform.rotation -= 5.0 * TIMESTEP as f32;
-            }
-            if self.input.key_is_down(&Key::W) {
-                velocity.0 = Vec2::with_angle(transform.rotation) * 300.0;
-            } else {
-                velocity.0 = Vec2::zero();
-            }
-        }
-    }
-}
-
-struct MovementSystem {}
-
-impl MovementSystem {
-    pub fn new() -> MovementSystem {
-        MovementSystem {}
-    }
-}
-
-impl<'a> System<'a> for MovementSystem {
-    type SystemData = (WriteStorage<'a, Transform>, ReadStorage<'a, Velocity>);
-    fn run(&mut self, (mut transform, vel): Self::SystemData) {
-        for (transform, velocity) in (&mut transform, &vel).join() {
-            transform.position += velocity.0 * TIMESTEP as f32;
-        }
-    }
-}
-
-pub struct Drawable {
-    pub texture: TextureImage,
-    pub position: Vec2<f32>,
-    pub scale: f32,
-    pub rotation: f32,
-}
-
-pub struct RenderSystem {
-    drawables: Vec<Drawable>,
-}
-
-impl RenderSystem {
-    pub fn new() -> RenderSystem {
-        RenderSystem {
-            drawables: Vec::new(),
-        }
-    }
-
-    pub fn take_drawables(&mut self) -> Vec<Drawable> {
-        mem::replace(&mut self.drawables, Vec::new())
-    }
-}
-
-impl<'a> System<'a> for RenderSystem {
-    type SystemData = (ReadStorage<'a, Transform>, ReadStorage<'a, Sprite>);
-    fn run(&mut self, (transform, sprite): Self::SystemData) {
-        for (transform, sprite) in (&transform, &sprite).join() {
-            self.drawables.push(Drawable {
-                texture: sprite.texture.clone(),
-                position: transform.position,
-                scale: transform.scale,
-                rotation: transform.rotation,
-            })
-        }
-    }
-}
-
-pub struct ClientSystems {
-    input: InputSystem,
-    movement: MovementSystem,
-    render: RenderSystem,
-}
-
-impl ClientSystems {
-    pub fn new() -> ClientSystems {
-        ClientSystems {
-            input: InputSystem::new(),
-            movement: MovementSystem::new(),
-            render: RenderSystem::new(),
-        }
-    }
-}
-
 pub struct GameClient {
     world: World,
     prefabs: prefab::Registry,
     outgoing: Vec<Packet>,
     state: GameState,
-    systems: ClientSystems,
+
+    net_adapter: NetComponentAdapter,
+    net_load: HashMap<EntityId, Vec<ComponentStore>>,
 }
 
 impl GameClient {
     pub fn new() -> Result<GameClient, Error> {
+        let mut net_adapter = NetComponentAdapter::new();
         let mut world = World::new();
-        components::register_components(&mut world);
+        components::register_components(&mut world, &mut net_adapter);
 
         let mut prefabs = prefab::Registry::new();
         prefab::register_prefabs(&mut prefabs);
@@ -148,24 +43,36 @@ impl GameClient {
             prefabs,
             outgoing: Vec::new(),
             state: GameState::Start,
-            systems: ClientSystems::new(),
+
+            net_adapter,
+            net_load: HashMap::new(),
         })
     }
 
-    pub fn handle_incoming(&mut self, packet: &Packet) -> Result<(), Error> {
-        match *packet {
-            Packet::WorldState(ref entity_stores) => {
+    pub fn handle_incoming(&mut self, packet: Packet) -> Result<(), Error> {
+        match packet {
+            Packet::Initialize => {
                 if self.state == GameState::Connecting {
                     self.state = GameState::Running;
                 } else {
-                    return Err(format_err!("unexpected world state packet"));
-                }
-                for store in entity_stores.iter() {
-                    self.prefabs.load(&mut self.world, store)?;
+                    return Err(format_err!("unexpected initialize packet"));
                 }
             }
-            Packet::CreateEntity(ref store) => {
-                self.prefabs.load(&mut self.world, store)?;
+            Packet::CreateEntity(EntityStore {
+                entity_id,
+                prefab,
+                components,
+            }) => {
+                let e = self.prefabs.instantiate(&mut self.world, prefab)?;
+                self.world
+                    .write_storage::<Networked>()
+                    .insert(e, Networked { entity_id, prefab })?;
+
+                self.net_load.insert(entity_id, components);
+            }
+            Packet::Update(net_deltas) => {
+                self.net_adapter
+                    .write_delta::<Transform>(&self.world, &net_deltas);
             }
             _ => {
                 return Err(format_err!("client received unexpected packet"));
@@ -180,7 +87,9 @@ impl GameClient {
     }
 
     pub fn update(&mut self, _: f64, input: &Input) -> Result<(), Error> {
-        self.systems.input.set_input(input.clone());
+        let net_load = mem::replace(&mut self.net_load, HashMap::new());
+        self.net_adapter
+            .net_load::<Transform>(&self.world, &net_load);
 
         match self.state {
             GameState::Start => {
@@ -189,8 +98,11 @@ impl GameClient {
             }
             GameState::Connecting => {}
             GameState::Running => {
-                self.systems.input.run_now(&self.world.res);
-                self.systems.movement.run_now(&self.world.res);
+                self.outgoing.push(Packet::PlayerInput {
+                    left: input.key_is_down(&Key::A),
+                    right: input.key_is_down(&Key::D),
+                    up: input.key_is_down(&Key::W),
+                });
             }
         }
 
@@ -198,13 +110,14 @@ impl GameClient {
     }
 
     pub fn render(&mut self, renderer: &mut RenderInterface) -> Result<(), Error> {
-        self.systems.render.run_now(&self.world.res);
-        for drawable in self.systems.render.take_drawables() {
+        let transform = self.world.read_storage::<Transform>();
+        let sprite = self.world.read_storage::<Sprite>();
+        for (transform, sprite) in (&transform, &sprite).join() {
             renderer.draw_texture(
-                &drawable.texture,
-                drawable.position,
-                drawable.scale,
-                drawable.rotation,
+                &sprite.texture,
+                transform.position,
+                transform.scale,
+                transform.rotation,
             )?;
         }
 
