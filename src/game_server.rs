@@ -186,7 +186,14 @@ impl GameServer {
             .world
             .read_storage::<Networked>()
             .join()
-            .map(|&Networked { entity_id, prefab }| (entity_id, prefab))
+            .filter_map(|&Networked { entity_id, prefab }| {
+                let include = entity_set.map(|s| s.contains(&entity_id)).unwrap_or(true);
+                if include {
+                    Some((entity_id, prefab))
+                } else {
+                    None
+                }
+            })
             .collect();
         let components = self.net_adapter.net_store(&self.world, entity_set);
 
