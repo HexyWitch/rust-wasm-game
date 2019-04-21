@@ -8,8 +8,8 @@ use specs::{Entity, Join, RunNow, World};
 
 use components;
 use components::{Networked, Player, Transform};
-use net::{ClientId, ComponentDelta, EntityId, NetComponentAdapter};
-use packets::{EntityStore, Packet};
+use net::{ClientId, EntityId, NetComponentAdapter};
+use packets::{EntitiesStore, Packet};
 use prefab;
 use prefab::{PlayerPrefab, Prefab};
 use systems::{MovementSystem, PlayerControlSystem};
@@ -124,11 +124,11 @@ impl GameServer {
             })
             .collect();
         for (client_id, unknown_entities) in client_unknowns {
-            let entity_stores = self.store_net_entities(Some(&unknown_entities));
+            let entities_store = self.store_net_entities(Some(&unknown_entities));
             let client_data = self.clients.get_mut(&client_id).unwrap();
-            for store in entity_stores {
-                client_data.outgoing.push(Packet::CreateEntity(store));
-            }
+            client_data
+                .outgoing
+                .push(Packet::CreateEntities(entities_store));
             client_data.known_entities = entity_ids.clone();
         }
 
@@ -153,11 +153,11 @@ impl GameServer {
         self.movement_system.run_now(&self.world.res);
 
         // send new net deltas to clients
-        let net_deltas = self.read_net_deltas();
+        let component_delta = self.net_adapter.read_delta(&self.world, None);
         for (_, client_data) in self.clients.iter_mut() {
             client_data
                 .outgoing
-                .push(Packet::Update(net_deltas.clone()));
+                .push(Packet::Update(component_delta.clone()));
         }
 
         Ok(())
@@ -181,32 +181,18 @@ impl GameServer {
         Ok(e)
     }
 
-    fn store_net_entities(&mut self, index: Option<&HashSet<EntityId>>) -> Vec<EntityStore> {
-        let mut components = HashMap::new();
+    fn store_net_entities(&mut self, entity_set: Option<&HashSet<EntityId>>) -> EntitiesStore {
+        let entities = self
+            .world
+            .read_storage::<Networked>()
+            .join()
+            .map(|&Networked { entity_id, prefab }| (entity_id, prefab))
+            .collect();
+        let components = self.net_adapter.net_store(&self.world, entity_set);
 
-        self.net_adapter
-            .net_store::<Transform>(&self.world, &mut components, index);
-
-        let mut stores = Vec::new();
-        for &Networked { entity_id, prefab } in self.world.read_storage().join() {
-            if components.contains_key(&entity_id) {
-                stores.push(EntityStore {
-                    entity_id,
-                    prefab,
-                    components: components.remove(&entity_id).unwrap(),
-                });
-            }
+        EntitiesStore {
+            entities,
+            components,
         }
-
-        stores
-    }
-
-    fn read_net_deltas(&mut self) -> HashMap<EntityId, Vec<ComponentDelta>> {
-        let mut deltas = HashMap::new();
-
-        self.net_adapter
-            .read_delta::<Transform>(&self.world, &mut deltas);
-
-        deltas
     }
 }

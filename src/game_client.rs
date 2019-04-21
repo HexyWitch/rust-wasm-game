@@ -1,5 +1,4 @@
 use failure::Error;
-use std::collections::HashMap;
 use std::mem;
 
 use embla::input::{Input, Key};
@@ -7,8 +6,8 @@ use specs::{Join, World};
 
 use components;
 use components::{Networked, Sprite, Transform};
-use net::{ComponentStore, EntityId, NetComponentAdapter};
-use packets::{EntityStore, Packet};
+use net::NetComponentAdapter;
+use packets::{EntitiesStore, Packet};
 use prefab;
 use render_interface::RenderInterface;
 
@@ -26,7 +25,6 @@ pub struct GameClient {
     state: GameState,
 
     net_adapter: NetComponentAdapter,
-    net_load: HashMap<EntityId, Vec<ComponentStore>>,
 }
 
 impl GameClient {
@@ -45,7 +43,6 @@ impl GameClient {
             state: GameState::Start,
 
             net_adapter,
-            net_load: HashMap::new(),
         })
     }
 
@@ -58,21 +55,21 @@ impl GameClient {
                     return Err(format_err!("unexpected initialize packet"));
                 }
             }
-            Packet::CreateEntity(EntityStore {
-                entity_id,
-                prefab,
+            Packet::CreateEntities(EntitiesStore {
+                entities,
                 components,
             }) => {
-                let e = self.prefabs.instantiate(&mut self.world, prefab)?;
-                self.world
-                    .write_storage::<Networked>()
-                    .insert(e, Networked { entity_id, prefab })?;
+                for (entity_id, prefab) in entities {
+                    let e = self.prefabs.instantiate(&mut self.world, prefab)?;
+                    self.world
+                        .write_storage::<Networked>()
+                        .insert(e, Networked { entity_id, prefab })?;
+                }
 
-                self.net_load.insert(entity_id, components);
+                self.net_adapter.net_load(&self.world, components);
             }
-            Packet::Update(net_deltas) => {
-                self.net_adapter
-                    .write_delta::<Transform>(&self.world, &net_deltas);
+            Packet::Update(component_delta) => {
+                self.net_adapter.write_delta(&self.world, component_delta);
             }
             _ => {
                 return Err(format_err!("client received unexpected packet"));
@@ -87,10 +84,6 @@ impl GameClient {
     }
 
     pub fn update(&mut self, _: f64, input: &Input) -> Result<(), Error> {
-        let net_load = mem::replace(&mut self.net_load, HashMap::new());
-        self.net_adapter
-            .net_load::<Transform>(&self.world, &net_load);
-
         match self.state {
             GameState::Start => {
                 self.outgoing.push(Packet::Connect);
